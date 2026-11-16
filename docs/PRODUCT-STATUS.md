@@ -2,7 +2,7 @@
 
 ## Product and price
 
-Coverstead: Full tables. Calmer service. Built from the locally recovered Red Lion reservation source. The free tool is positioned as Alistair Nichols giving something useful back to independent hospitality businesses.
+Coverstead: Full tables. Calmer service. Built from the locally recovered Red Lion reservation source. The free tool is positioned as Alistair giving something useful back to independent hospitality businesses.
 
 Community is MIT-licensed and self hosted. Enterprise includes the first month free, followed by £10 per venue per month or £100 per venue per year paid upfront. The free month precedes either paid option. No setup fee, per-cover commission, or separate annual feature tier. Coverstead is operated by Classicbikemerch Ltd. The owner confirmed that the company is not VAT-registered; no VAT is added or collected in the test integration. Final service terms and live launch readiness remain to be completed.
 

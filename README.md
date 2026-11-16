@@ -10,7 +10,7 @@ Open-source reservation software for independent pubs, restaurants and hospitali
 
 ## Built for independent hospitality
 
-Coverstead grew from the reservation app at The Red Lion in Kilsby. Alistair Nichols wanted to make a useful tool available to other independent venues, without a software licence fee or per-cover commission.
+Coverstead grew from the reservation app at The Red Lion in Kilsby. Alistair wanted to make a useful tool available to other independent venues, without a software licence fee or per-cover commission.
 
 - **Bookings and walk-ins:** guest booking form, staff diary, search, amendments and cancellations.
 - **Tables and kitchen capacity:** areas, allowed table combinations, arrival limits, dining durations and service closures.
@@ -93,4 +93,4 @@ The release helper requires the system `zip` command and builds `public/download
 
 ## Licence
 
-[MIT](LICENSE) · Copyright © 2026 Alistair Murray Nichols.
+[MIT](LICENSE) · Copyright © 2026 Alistair.
