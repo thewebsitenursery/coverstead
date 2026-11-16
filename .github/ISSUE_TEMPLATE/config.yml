@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Installation guide
+    url: https://coverstead.net/install
+    about: Read the venue setup and self-hosting guide.
+  - name: Report a security vulnerability privately
+    url: https://github.com/thewebsitenursery/coverstead/security/advisories/new
+    about: Keep vulnerabilities and sensitive information out of public issues.

@@ -1,0 +1,27 @@
+node_modules/
+data/
+.env
+.env.*
+!.env.example
+*.sqlite*
+*.lock
+!package-lock.json
+*.log
+.DS_Store
+artifacts/
+public/downloads/
+
+# Local tooling, credentials, exports and backup archives
+.agents/
+.codex/
+.vscode/
+*.env
+*.pem
+*.key
+*.p12
+*.pfx
+*.zip
+*.tar
+*.tar.gz
+*.bak
+coverage/

@@ -1,0 +1,23 @@
+name: Feature request
+description: Suggest an improvement for independent hospitality teams.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What venue problem would this solve?
+      description: Describe the service situation and who needs help.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Suggested improvement
+      description: What should the experience be? A small first step is welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and context
+      description: Include any workaround or examples using synthetic data.
