@@ -4,7 +4,8 @@ import {Duplex} from 'node:stream';
 export function request(app,url,{method='GET',body,cookie,origin='http://localhost:3100',headers={}}={}) {
   return new Promise((resolve,reject)=>{
     const chunks=[];
-    const socket=new Duplex({read(){},write(chunk,_enc,callback){chunks.push(Buffer.from(chunk));callback();}});
+    // Keep the in-memory socket buffer consistent across Node 20 and newer runtimes.
+    const socket=new Duplex({writableHighWaterMark:64*1024,read(){},write(chunk,_enc,callback){chunks.push(Buffer.from(chunk));callback();}});
     socket.remoteAddress='127.0.0.1';
     const req=new IncomingMessage(socket),res=new ServerResponse(req);
     req.url=url;req.method=method;req.headers={host:'localhost:3100',...headers};

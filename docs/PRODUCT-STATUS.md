@@ -56,6 +56,8 @@ The product website is available at <https://coverstead.net>. Each venue must ru
 
 ## Public collaboration and discovery
 
-Source and contributions: <https://github.com/thewebsitenursery/coverstead>. The repository includes contribution and security policies, bug/feature issue forms, a pull request template and CI on Node 22 and 24. Private credentials, venue data and operator deployment notes are excluded. The initial browser upload was integrated into the repository root without rewriting its history.
+Source and contributions: <https://github.com/thewebsitenursery/coverstead>. The repository includes contribution and security policies, bug/feature issue forms, a pull request template and CI on Node 20, 22 and 24. Private credentials, venue data and operator deployment notes are excluded. The initial browser upload was integrated into the repository root without rewriting its history.
 
 The homepage links to the repository, the public user manual at `/manual` and the customer/staff walkthrough at `/demo`. The full manual also serves authenticated staff help. The demo uses synthetic browser-local data, with no reservation or billing API calls; it is a walkthrough of the core flows rather than the complete installed app. Forty-seven automated tests pass, including checks that public demo/manual access leaves venue APIs protected. Browser checks exercised customer booking, staff status changes, reload persistence and responsive layouts.
+
+The in-process HTTP test harness uses a consistent socket buffer across Node versions; this avoids a Node 20 test-only stall while streaming the longer public manual. The Node 20 application tests passed after that correction.
