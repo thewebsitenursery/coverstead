@@ -4,7 +4,7 @@
 
 Open-source reservation software for independent pubs, restaurants and hospitality venues. Plan your tables, pace the kitchen and give the team a clear picture of the next service.
 
-[Visit Coverstead](https://coverstead.net) · [Installation guide](https://coverstead.net/install) · [Suggest an improvement](https://github.com/thewebsitenursery/coverstead/issues/new/choose) · [Contribute](CONTRIBUTING.md)
+[Visit Coverstead](https://coverstead.net) · [Try the demo](https://coverstead.net/demo) · [User manual](https://coverstead.net/manual) · [Installation guide](https://coverstead.net/install) · [Suggest an improvement](https://github.com/thewebsitenursery/coverstead/issues/new/choose) · [Contribute](CONTRIBUTING.md)
 
 ![Coverstead website with an illustrative service diary](coverstead-preview.jpg)
 

@@ -28,6 +28,7 @@ The source is MIT-licensed, including the optional Enterprise administration mod
 - Booking CSV export; consent-filtered marketing contact export.
 - Idempotent guest booking retries; process lock; atomic database snapshots and rollback on persistence failure.
 - Marketing landing page, pricing, founder story, download page and beginner installation guide.
+- Public full user manual at /manual, GitHub contribution links, and a browser-only customer/staff walkthrough at /demo. Synthetic demo records stay in sessionStorage and never enter the venue database; it covers sample booking, diary filters, status/notes and printing, with simplified capacity rules.
 - Docker Compose, HTTPS proxy example, backup helper, email setup, password reset and Opalstack deployment instructions.
 - Rebuildable Community ZIP download with source allowlisting and private-data exclusion; operations/recovery documentation.
 - Stripe test-mode subscription accounts, hosted Checkout, one calendar month trial, £10 monthly / £100 annual prices, Customer Portal and signed idempotent webhooks. Billing identities are separate from venue staff.
