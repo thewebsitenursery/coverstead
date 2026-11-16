@@ -1,3 +1,0 @@
-bookings.your-venue.example {
-    reverse_proxy coverstead:3100
-}
