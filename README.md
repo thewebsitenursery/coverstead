@@ -4,7 +4,7 @@
 
 Open-source reservation software for independent pubs, restaurants and hospitality venues. Plan your tables, pace the kitchen and give the team a clear picture of the next service.
 
-[Visit Coverstead](https://coverstead.net) · [Try the demo](https://coverstead.net/demo) · [User manual](https://coverstead.net/manual) · [Installation guide](https://coverstead.net/install) · [Suggest an improvement](https://github.com/thewebsitenursery/coverstead/issues/new/choose) · [Contribute](CONTRIBUTING.md)
+[Visit Coverstead](https://coverstead.net) · [Try the demo](https://coverstead.net/demo) · [User manual](https://coverstead.net/manual) · [Installation guide](https://coverstead.net/install) · [Switching checklist](https://coverstead.net/switching-from-paper) · [Suggest an improvement](https://github.com/thewebsitenursery/coverstead/issues/new/choose) · [Contribute](CONTRIBUTING.md)
 
 ![Coverstead website with an illustrative service diary](coverstead-preview.jpg)
 
@@ -86,6 +86,7 @@ The release helper requires the system `zip` command and builds `public/download
 
 - [Product status and boundaries](docs/PRODUCT-STATUS.md)
 - [Operations, backup and recovery](docs/OPERATIONS.md)
+- [Optional website counts and limitations](docs/WEBSITE-MEASUREMENT.md)
 - [Opalstack deployment template](docs/OPALSTACK.md)
 - [Venue setup questionnaire](docs/VENUE-QUESTIONNAIRE.md)
 - [Stripe subscription pilot](docs/STRIPE.md)

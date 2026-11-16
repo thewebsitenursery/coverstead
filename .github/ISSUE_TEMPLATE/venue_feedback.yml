@@ -1,0 +1,26 @@
+name: Venue rehearsal feedback
+description: Tell us how the sample service fits your independent venue.
+title: "Venue feedback: "
+body:
+  - type: markdown
+    attributes:
+      value: "This is a public discussion, not a hosted-service signup or support contract. Do not include guest names, contact details, credentials or confidential records. Use fictional examples."
+  - type: dropdown
+    id: venue-type
+    attributes:
+      label: Type of venue
+      options: [Pub serving food, Restaurant, Café or bistro, Other independent venue]
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: What did you try?
+      description: Describe a service task and what worked or got in the way.
+    validations:
+      required: true
+  - type: textarea
+    id: decision
+    attributes:
+      label: What would you need before using Coverstead?
+      description: Include practical needs such as setup help, email delivery or a missing workflow. No private details.
