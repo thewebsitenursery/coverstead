@@ -1,0 +1,23 @@
+# Hosted-provider review — 17 November 2026
+
+This records evidence and unresolved points for the proposed cloud service. It does not declare paid enrolment open. Production still uses its existing host; the cloud runtime contains rehearsal data. Update public notices and the private launch record only when the final operating arrangement is confirmed.
+
+| Provider | Proposed purpose and location | Evidence and limits |
+| --- | --- | --- |
+| DigitalOcean | Dedicated application VM in London | The [DPA](https://www.digitalocean.com/legal/data-processing-agreement), updated 14 October 2026, is an addendum to the customer terms and covers controller/processor and processor/subprocessor arrangements. Section 7.6 provides account-deactivation deletion within 30 days, with legal-retention and isolated backup exceptions. This is not a promise that every provider copy follows our application backup schedule. |
+| Backblaze B2 | Client-encrypted backups in EU Central, Amsterdam | The [service terms](https://www.backblaze.com/company/policy/terms-of-service), effective 16 April 2026, incorporate a DPA and require account MFA. Scoped cloud credentials and a separate encryption password are installed; the application container receives neither. Data restores onto the operator's separate Mac passed. Account/support processing is not confined to the bucket region. Confirm MFA under the owner's control before launch. |
+| Brevo | Transactional booking, identity and operational email | The [terms](https://www.brevo.com/legal/termsofuse/) include the DPA in Appendix 3. Section 10.4 prohibits sensitive data under GDPR Articles 9/10. Booking requirements/allergies and private enquiry text therefore stay out of this transport. One-month logs and no retained previews are configured. Actual messages reached the inbox. Tracking remains unresolved as described below. |
+| Opalstack | Existing company mailbox and authoritative DNS during migration | Moving the application does not move the mailbox or end the provider relationship. The processing request has only an automated acknowledgement so far. Do not describe its agreement or provider retention as verified. Keep the existing email route working until any separately agreed mailbox move is tested. |
+| Stripe | Subscription payment processing | A separate test-mode cloud webhook delivered actual signed subscription and cancellation events. Prepared live prices are £25/month or £250/year with the first calendar month free. Live customer enrolment remains gated; test receipts are not evidence of a live customer payment. |
+
+## Email tracking decision
+
+Per-recipient `contactPixelTrackingConsent:false` and the account's consent controls do not remove Brevo's pixel. The [API reference](https://developers.brevo.com/reference/send-transac-email.md) describes anonymised engagement events and reserves `removeTrackingPixel` for Enterprise plans. A received synthetic message still contained the pixel. The provider's automated support response confirmed that complete removal is unavailable for this account; human technical clarification has been requested. No upgrade, trial, new agreement or charge was requested.
+
+Do not publish a claim that mail has no tracking. The final email notice and any required consent/objection handling must match actual behaviour. If full removal is unavailable, select a suitable provider or confirm an appropriate documented arrangement before opening venue mail. Anonymised statistics alone do not establish that every privacy requirement is satisfied.
+
+## Application recovery and deletion
+
+Hourly consistent venue snapshots keep about 48 hours locally. Daily encrypted venue snapshots use a 35-day recovery window, retaining a last successful snapshot if necessary; closures and deletion requests require operator handling. Separate enquiry snapshots use a seven-day window during successful daily pruning. Failed schedules can extend those windows and raise monitoring alerts. Restore enquiries into a new private directory, omit expired/deleted records, review corrections and suppress email replay. See [ENQUIRIES.md](ENQUIRIES.md).
+
+These are our configured controls, not guarantees about all copies held by infrastructure providers. Record provider exceptions accurately, keep deletion instructions through the recovery window, and retain owner-controlled recovery credentials outside the VM.
