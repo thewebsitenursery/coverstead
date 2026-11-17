@@ -1,6 +1,7 @@
 import '../env.js';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import {spawnSync} from 'node:child_process';
 import {managedRegistry} from '../managed.js';
 
@@ -29,6 +30,32 @@ const source=path.resolve('public/downloads/coverstead-community.zip');if(!fs.ex
 for(const args of [['backup','--quiet','--tag','coverstead-managed',...selected],['check','--read-data-subset=10%'],['forget','--tag','coverstead-managed','--group-by','host,tags','--keep-within','35d','--keep-last','1','--prune'],['check']]){
  const result=spawnSync(command,args,{env:process.env,stdio:['ignore','ignore','pipe'],timeout:600000});
  if(result.status!==0)throw Error('Off-server backup/check failed. Inspect the private storage configuration; no success marker was written.');
+}
+// Product enquiries have a separate short recovery window. They never enter
+// the 35-day venue snapshots or source archive. Source files are atomic JSON
+// records; expiry/deletion racing a read can only omit that record.
+if(process.env.ENQUIRY_RECOVERY_DIR){
+ const input=path.resolve(process.env.ENQUIRY_RECOVERY_DIR),temporary=fs.mkdtempSync(path.join(os.tmpdir(),'coverstead-enquiries-'));
+ fs.chmodSync(temporary,0o700);
+ try{
+  if(fs.existsSync(input)){
+   if(!fs.lstatSync(input).isDirectory())throw Error('Enquiry recovery requires a regular directory.');
+   for(const entry of fs.readdirSync(input)){
+    if(!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}\.json$/i.test(entry))continue;
+    const source=path.join(input,entry);let contents;
+    try{if(!fs.lstatSync(source).isFile())throw Error('Enquiry recovery refuses non-regular files.');contents=fs.readFileSync(source);}catch(error){if(error.code==='ENOENT')continue;throw error;}
+    const record=JSON.parse(contents),created=Date.parse(record.created);
+    if(record.id+'.json'!==entry||!Number.isFinite(created))throw Error('Invalid enquiry recovery record.');
+    if(created<Date.now()-90*86400e3)continue;
+    fs.writeFileSync(path.join(temporary,entry),contents,{mode:0o600});
+   }
+  }
+  fs.writeFileSync(path.join(temporary,'recovery.json'),JSON.stringify({version:1,created:new Date().toISOString(),purpose:'Private enquiry recovery; review expiry and deletions before restoring'})+'\n',{mode:0o600});
+  for(const args of [['backup','--quiet','--tag','coverstead-enquiries',temporary],['forget','--tag','coverstead-enquiries','--group-by','host,tags','--keep-within','7d','--prune'],['check']]){
+   const result=spawnSync(command,args,{env:process.env,stdio:['ignore','ignore','pipe'],timeout:600000});
+   if(result.status!==0)throw Error('Private enquiry recovery backup/check failed.');
+  }
+ }finally{fs.rmSync(temporary,{recursive:true,force:true});}
 }
 const status=process.env.OFFSITE_STATUS_FILE||path.join(directory,'offsite-status.json');fs.writeFileSync(status+'.tmp',JSON.stringify({verifiedAt:Date.now(),snapshotCount:backupRoots.length})+'\n',{mode:0o600});fs.renameSync(status+'.tmp',status);
 console.log('Encrypted off-server backup completed and repository sample checked. Perform a full restore rehearsal before first customer use.');

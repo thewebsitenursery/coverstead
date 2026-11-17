@@ -34,3 +34,20 @@ test('failed offsite command never creates a successful backup marker',()=>{
   assert.notEqual(result.status,0);assert.equal(fs.existsSync(path.join(root,'offsite-status.json')),false);
  }finally{fs.rmSync(root,{recursive:true,force:true});}
 });
+
+test('enquiry recovery excludes expired and deleted records without replaying alerts',()=>{
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'cs-enquiry-recovery-'));
+ try{
+  const input=path.join(root,'restored'),output=path.join(root,'review'),deletions=path.join(root,'deletions.json');fs.mkdirSync(input);
+  const ids=['11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222','33333333-3333-4333-8333-333333333333'];
+  ids.forEach((id,index)=>fs.writeFileSync(path.join(input,id+'.json'),JSON.stringify({id,created:new Date(Date.now()-(index===1?91:0)*86400e3).toISOString(),message:'Synthetic enquiry',notification:{attempts:0}})));
+  fs.writeFileSync(deletions,JSON.stringify([ids[2]]));
+  const args=['scripts/recover-enquiries.js',input,output,deletions];
+  const result=spawnSync(process.execPath,args,{encoding:'utf8'});assert.equal(result.status,0,result.stderr);
+  assert.equal(JSON.parse(result.stdout).restored,1);assert.equal(JSON.parse(result.stdout).omitted,2);
+  const record=JSON.parse(fs.readFileSync(path.join(output,ids[0]+'.json')));assert.equal(record.notification.attempts,20);assert.equal(record.notification.acceptedAt,undefined);
+  assert.equal(fs.statSync(path.join(output,ids[0]+'.json')).mode&0o777,0o600);
+  assert.notEqual(spawnSync(process.execPath,args,{encoding:'utf8'}).status,0,'Never overwrite an existing inbox');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(input,ids[0]+'.json'))).notification.attempts,0,'Original recovery snapshot stays untouched');
+ }finally{fs.rmSync(root,{recursive:true,force:true});}
+});
