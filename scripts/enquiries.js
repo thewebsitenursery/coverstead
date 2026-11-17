@@ -8,5 +8,6 @@ else if(command==='list'){inbox.prune();result=inbox.list().map(({id,created,kin
 else if(command==='show'){inbox.prune();result=inbox.read(id);}
 else if(command==='status'){inbox.setStatus(id,value);result={id,status:value};}
 else if(command==='delete'){inbox.remove(id);result={id,deleted:true};}
-else throw Error('Usage: node scripts/enquiries.js summary | list | show ID | status ID new/contacted/closed | delete ID');
+else if(command==='retry-email'){inbox.setNotification(id,{attempts:0});result={id,retryQueued:true};}
+else throw Error('Usage: node scripts/enquiries.js summary | list | show ID | status ID new/contacted/closed | delete ID | retry-email ID');
 console.log(JSON.stringify(result,null,2));

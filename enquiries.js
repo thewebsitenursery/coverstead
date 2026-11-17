@@ -1,13 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {createEnquiryDelivery,createEnquiryNotifier} from './enquiry-mail.js';
 
 const idPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const emailPattern = /^[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9-]+(?:\.[A-Z0-9-]+)+$/i;
-export const enquiryNoticeVersion = '2026-11-17';
+export const enquiryNoticeVersion = '2026-11-17.1';
 const fail = (message, status = 400) => Object.assign(Error(message), {status});
 export function enquirySettings(env = process.env) {
   const contact = env.ENQUIRY_CONTACT_EMAIL || '';
-  return {enabled:env.ENQUIRIES_ENABLED === 'true' && env.ENQUIRY_NOTICE_CONFIRMED === 'true' && emailPattern.test(contact),contact,
+  return {enabled:env.ENQUIRIES_ENABLED === 'true' && env.ENQUIRY_NOTICE_CONFIRMED === 'true' && emailPattern.test(contact),contact,notify:env.ENQUIRY_EMAIL_ENABLED === 'true',
     directory:path.join(path.dirname(path.resolve(env.DB_PATH || 'data/coverstead.sqlite')), 'enquiries')};
 }
 export function createEnquiryInbox(directory, now = () => new Date()) {
@@ -50,17 +51,25 @@ export function createEnquiryInbox(directory, now = () => new Date()) {
     try { fs.writeFileSync(temporary,JSON.stringify(record)+'\n',{mode:0o600,flag:'wx'});fs.renameSync(temporary,target); }
     catch(error){try{fs.unlinkSync(temporary);}catch{}throw error;}
   }
+  function update(id,change) {
+    const record=read(id);change(record);
+    const target=file(id),temporary=target+'.tmp';
+    try {fs.writeFileSync(temporary,JSON.stringify(record)+'\n',{mode:0o600,flag:'wx'});fs.renameSync(temporary,target);}
+    catch(error){try{fs.unlinkSync(temporary);}catch{}throw error;}
+  }
   function setStatus(id,status) {
     if(!['new','contacted','closed'].includes(status))throw fail('Use new, contacted or closed.');
-    prune();const record=read(id);record.status=status;record.updated=now().toISOString();
-    const target=file(id);fs.writeFileSync(target+'.tmp',JSON.stringify(record)+'\n',{mode:0o600,flag:'wx'});fs.renameSync(target+'.tmp',target);
+    prune();update(id,record=>{record.status=status;record.updated=now().toISOString();});
   }
+  function setNotification(id,notification){update(id,record=>{record.notification=notification;});}
   function remove(id){read(id);fs.unlinkSync(file(id));}
-  function summary(){prune();const records=list();return {total:records.length,new:records.filter(r=>r.status==='new').length,contacted:records.filter(r=>r.status==='contacted').length,closed:records.filter(r=>r.status==='closed').length,oldestNew:records.filter(r=>r.status==='new').map(r=>r.created).sort()[0]||null};}
-  return {accept,prune,list,read,setStatus,remove,summary};
+  function summary(){prune();const records=list(),pending=records.filter(r=>r.status!=='closed'&&!r.notification?.acceptedAt);return {total:records.length,new:records.filter(r=>r.status==='new').length,contacted:records.filter(r=>r.status==='contacted').length,closed:records.filter(r=>r.status==='closed').length,oldestNew:records.filter(r=>r.status==='new').map(r=>r.created).sort()[0]||null,alertsPending:pending.length,alertsFailed:pending.filter(r=>r.notification?.attempts>=20).length};}
+  return {accept,prune,list,read,setStatus,setNotification,remove,summary};
 }
 export function registerEnquiries(app,{settings=enquirySettings(),now=()=>new Date()}={}) {
   const inbox=createEnquiryInbox(settings.directory,now),attempts=new Map();
+  const flush=settings.enabled&&settings.notify?createEnquiryNotifier({inbox,deliver:createEnquiryDelivery(settings.contact),now}):async()=>{};
+  const notify=()=>void flush().catch(()=>console.warn('Enquiry alert queue needs operator review.'));
   app.get('/api/enquiries/config',(_req,res)=>res.json({enabled:settings.enabled,contact:settings.enabled?settings.contact:null,noticeVersion:enquiryNoticeVersion}));
   app.post('/api/enquiries',(req,res,next)=>{
     if(!settings.enabled)return res.status(503).json({error:'Private enquiries are not open yet. Please check back later.'});
@@ -69,7 +78,8 @@ export function registerEnquiries(app,{settings=enquirySettings(),now=()=>new Da
     if(attempts.size>=10000&&!attempts.has(req.ip))return res.status(429).json({error:'Please try again later.'});
     const item=attempts.get(req.ip)||{count:0,until:timestamp+15*60000};item.count++;attempts.set(req.ip,item);
     if(item.count>5)return res.status(429).json({error:'Please wait 15 minutes before sending another enquiry.'});
-    try {inbox.accept(req.body);res.status(202).json({ok:true,message:'Your enquiry has been saved privately. No subscription or newsletter signup has been created.'});}catch(error){next(error);}
+    try {inbox.accept(req.body);res.status(202).json({ok:true,message:'Your enquiry has been saved privately. No subscription or newsletter signup has been created.'});notify();}catch(error){next(error);}
   });
   if(settings.enabled){inbox.prune();const timer=setInterval(()=>{try{inbox.prune();}catch{console.warn('Enquiry retention check failed; operator review needed.');}},3600000);timer.unref();}
+  if(settings.enabled&&settings.notify){notify();const timer=setInterval(notify,60000);timer.unref();}
 }

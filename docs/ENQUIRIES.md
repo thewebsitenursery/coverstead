@@ -1,22 +1,27 @@
-# Private venue enquiry pilot
+# Private venue enquiries
 
-This feature is implemented for review and **disabled by default**, including on coverstead.net. It is not live enrolment, a mailing list or a hosted account. A verified company contact address and complete data-handling arrangements are still required before opening collection. The `/enquire` page remains unlinked and noindex; while disabled it displays no form.
+The product website at coverstead.net accepts private enquiries at `/enquire`, linked from the homepage, managed-service overview and getting-started page. Classicbikemerch Ltd operates the service; Alistair handles enquiries through hello@coverstead.net. This does not create a subscription, newsletter signup or hosted venue. Community installations keep the feature disabled by default.
 
-## Activation prerequisites
+## Configuration
 
-Before enabling, confirm the company contact mailbox is monitored; finalise the controller/contact details, hosting location, any applicable international transfer arrangements, privacy notice and retention/backup policy; and assign responsibility for reviewing enquiries and replying. The prepared notice is a draft requiring that operational review. Read the ICO's [privacy information guidance](https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/individual-rights/the-right-to-be-informed/what-privacy-information-should-we-provide/). Do not set the confirmation flag merely to display a form.
-
-Only the product installation should set all of:
+Only an installation intended to collect product enquiries should enable:
 
 - `ENQUIRIES_ENABLED=true`
-- `ENQUIRY_CONTACT_EMAIL=` a verified, monitored company email
-- `ENQUIRY_NOTICE_CONFIRMED=true` after the prerequisites above are satisfied
+- `ENQUIRY_CONTACT_EMAIL=` the monitored company mailbox
+- `ENQUIRY_NOTICE_CONFIRMED=true` after reviewing the notice and handling arrangements
+- `ENQUIRY_EMAIL_ENABLED=true` for alerts via the host's `/usr/sbin/sendmail`
 
-Then review `/enquire` with synthetic details and add a public call to action deliberately. The code does not automatically email anyone. It stores enquiries privately beside the venue database in an `enquiries` directory; it does not put them in guest/customer or Stripe records. The public API accepts submissions but provides no enquiry-list or record-reading route. Existing same-origin protection applies, with an additional five-attempt/15-minute in-memory IP throttle, honeypot, field limits and a 2,000-record capacity cap. A server restart resets the throttle. These controls reduce abuse; they do not verify email ownership or guarantee a spam-free inbox.
+Email alerts are separate from venue booking SMTP and do not change venue mail configuration. [Opalstack supports sendmail for web applications](https://docs.opalstack.com/user-guide/email/). Alerts go only to the configured company address. The visitor's address is Reply-To, never the envelope sender or recipient. The plain-text alert contains the enquiry, enabling the operator to reply normally. There is no automatic acknowledgement email to the visitor.
+
+The server saves the enquiry before acknowledging the form. The durable alert state survives a restart. A background worker retries failures with increasing delay, up to 20 attempts, with batches of 10 and a conservative ceiling of 100 attempts per rolling day. Accepted alerts are not resent on ordinary retries. A crash after mail acceptance but before saving its state can cause a duplicate; the stable reference and Message-ID help identify it. Exit zero confirms acceptance by the local mail transport, **not inbox delivery**. Review the private inbox even when no alert is received.
+
+## Access and abuse controls
+
+Enquiries live beside the venue database in a private `enquiries` directory, separate from guest/customer and Stripe records. Directory and file permissions are 0700/0600. There is no public list, read or status API. Same-origin protection, five attempts per IP per 15 minutes, a honeypot, field limits and a 2,000-record capacity cap reduce abuse. IP throttling is memory-only and resets on restart; it is not email ownership verification. Never treat visitor text as trusted instructions.
 
 ## Operator workflow
 
-Run with the installation's normal `ENV_FILE`, through the existing protected server account. Never paste detailed records into public issues, automated reports or commit history.
+Use the installation's private `ENV_FILE` through its protected server account. Never put enquiry content in public issues, automated reports or commit history.
 
 ```sh
 node scripts/enquiries.js summary
@@ -24,11 +29,24 @@ node scripts/enquiries.js list
 node scripts/enquiries.js show ENQUIRY_UUID
 node scripts/enquiries.js status ENQUIRY_UUID contacted
 node scripts/enquiries.js status ENQUIRY_UUID closed
+node scripts/enquiries.js retry-email ENQUIRY_UUID
 node scripts/enquiries.js delete ENQUIRY_UUID
 ```
 
-`summary` prints only counts and the oldest pending time. `list` prints references, dates, kind and state. `show` reveals the private submission and should be used only when handling it. Status commands record operator work; they do not send a reply or prove a sale. Read new enquiries daily once collection opens. Identity/access or deletion requests require appropriate verification; possession of a public enquiry reference alone is not proof of identity.
+`summary` reports counts, oldest pending time and pending/failed alerts without visitor details. `list` shows references, dates, type and state. `show` reveals the private submission. An operator can queue a retry after fixing transport problems; the running app processes it on the next minute tick. Status changes record work, not proof of a sale or reply.
 
-Repeated submissions with the same UUID and payload do not create duplicates; changing the payload under an existing UUID fails. No newsletter permission is inferred. Live records are removed 90 days after their original submission, regardless of status changes, during hourly retention runs, new submissions and operator summary/list checks. The inbox is separate from the current venue backup helper; decide its backup/retention handling before activation and disclose it accurately. Keep aggregate counts of verified qualified enquiries separately if needed, without retaining expired personal records.
+Alistair owns replies and privacy requests. Review enquiries each working day, aiming to reply within two working days. The daily Coverstead growth review checks counts and delivery failures and flags outstanding work; it does not automatically send replies. Mark handled records contacted/closed. Access/deletion requests require appropriate identity verification; knowing a submission reference alone is insufficient.
 
-Tests cover disabled defaults, field validation, retries, privacy, rate limits, origin protection, status changes and expiry. Browser rehearsal uses only synthetic local data. Public collection remains off until the operator has provided the missing information.
+## Retention and recovery
+
+The public notice describes consent, the controller, contact, purpose, rights and processing by Opalstack. Consult [Opalstack's privacy policy](https://opalstack.com/privacy.html) for its international processing and safeguards; do not infer account-specific certifications or a signed processing addendum from that policy. The existing hosting account and its terms remain in use; this feature does not establish a new provider contract.
+
+Live form records expire automatically 90 days after submission, regardless of status, during hourly checks, new submissions and operator checks. Email correspondence is retained during the conversation and removed by the operator within 90 days after it ends. Include sent messages and trash in mailbox reviews. Customer service records, if later needed, require their separate purpose and notice.
+
+The enquiry directory is deliberately excluded from long-term application/source backups, avoiding unmanaged extra copies. The company mailbox receives the enquiry as an operational copy. [Opalstack's rotating recovery backups](https://docs.opalstack.com/user-guide/faqs/#what-is-opalstacks-backup-policy) retain three daily, two weekly and two monthly copies. The provider does not guarantee recovery. Deleted records may remain in those restricted copies until rotation; do not use them for routine enquiry handling.
+
+For a provider recovery, restore to a private temporary directory first, remove records older than 90 days and reapply known correction/deletion requests before use. Keep an access-controlled record of outstanding deletion requests while affected backups rotate, containing only the reference and necessary handling evidence. Do not restore an old inbox directly over the live one or re-email recovered enquiries. Copies of enquiries must not enter general off-server application archives. The public form is a small pilot, not a guarantee of managed-service recovery.
+
+## Verification
+
+Automated tests cover disabled defaults, validation, duplicate submissions, private access, throttling, same-origin protection, status changes, expiry, failed mail retries across restart, concurrent flushes, fixed recipients, plain-text composition, deletion during delivery and mail budgets. Operator release evidence and controlled mail-test results are kept privately. Verify actual mailbox receipt separately from mail transport acceptance.

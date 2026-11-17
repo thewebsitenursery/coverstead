@@ -14,7 +14,7 @@ test('enquiries require explicit readiness and preserve private records through 
  try{
   assert.equal(enquirySettings({ENQUIRIES_ENABLED:'true'}).enabled,false);
   const input=sample();inbox.accept(input);inbox.accept(input);
-  assert.equal(inbox.summary().total,1);assert.equal(inbox.read(input.id).notice_version,'2026-11-17');
+  assert.equal(inbox.summary().total,1);assert.equal(inbox.read(input.id).notice_version,'2026-11-17.1');
   assert.equal(fs.statSync(path.join(directory,input.id+'.json')).mode&0o077,0);
   assert.throws(()=>inbox.accept({...input,message:'different'}),/already been used/);
   assert.throws(()=>inbox.accept({...sample(),contact_permission:false}),/Confirm/);

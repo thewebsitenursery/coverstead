@@ -72,10 +72,10 @@ The isolated backup rehearsal helper checks integrity, copies assets, starts the
 
 ## Pilot readiness work, 17 November 2026
 
-A private enquiry form and protected operator CLI are implemented and tested, but public collection is disabled pending a verified company contact and completed privacy/handling arrangements. No mailing list or automatic reply is created. See [ENQUIRIES.md](ENQUIRIES.md).
+Private enquiries are open on the product website at `/enquire`, linked from the homepage and managed-service pages. Classicbikemerch Ltd uses hello@coverstead.net for enquiries and privacy requests, handled by Alistair. Submissions are saved privately, with persistent email alerts, retry limits and an operator CLI. The published notice covers the provider, consent, retention and recovery handling. No mailing list, hosted account or automatic visitor reply is created. See [ENQUIRIES.md](ENQUIRIES.md).
 
 The SMTP sender has a real loopback SMTP rehearsal for acceptance, rejection, concurrent sends and withdrawn loyalty permission. Real-provider authentication, DNS and inbox delivery remain unverified; see [EMAIL-REHEARSAL.md](EMAIL-REHEARSAL.md). Legacy reservations without contact details no longer generate unmatched customer profiles on every restart; supported current booking paths still require a phone number. Existing reservations and profiles are retained.
 
 A read-only readiness diagnostic checks configuration, integrity, owner/setup state, queued failures and recent local backups without printing private records. A bounded Coverstead release helper validates archives, runs tests, backs up and switches only its own installation, with source rollback on failure. It does not automate schema rollback. Protected off-server backup copies and their verification are recorded privately by the operator.
 
-The current suite has 56 passing tests, including same-origin enquiry protection, private-inbox lifecycle, local SMTP dialogue and legacy CRM restart behavior.
+The current suite has 59 tests, including same-origin enquiry protection, private-inbox lifecycle, enquiry mail retries and transport failures, local SMTP dialogue and legacy CRM restart behavior. A controlled product-site email was accepted by the host’s sendmail transport. This does not establish real venue SMTP readiness or prove recipient inbox delivery.
