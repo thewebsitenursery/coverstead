@@ -1,21 +1,27 @@
 import nodemailer from 'nodemailer';
 import path from 'node:path';
 
+export function mailTransportConfigured(env=process.env) {
+  return env.MAIL_TRANSPORT==='sendmail' ? !!env.SMTP_FROM : !!env.SMTP_HOST;
+}
+
 export function createMailSender({query,run,transaction,venue,assets,demo=false,env=process.env,transportFactory=options=>nodemailer.createTransport(options)}) {
   let sending=false;
   return async function sendMail() {
     const result={accepted:0,failed:0,skipped:0};
-    if(demo||sending||!env.SMTP_HOST||env.EMAIL_DNS_READY!=='true')return result;
+    if(demo||sending||!mailTransportConfigured(env)||env.EMAIL_DNS_READY!=='true')return result;
     sending=true;let transport;
     try {
-      transport=transportFactory({host:env.SMTP_HOST,port:Number(env.SMTP_PORT||587),secure:env.SMTP_PORT==='465',requireTLS:env.SMTP_PORT!=='465',auth:env.SMTP_USER?{user:env.SMTP_USER,pass:env.SMTP_PASSWORD_B64?Buffer.from(env.SMTP_PASSWORD_B64,'base64').toString():env.SMTP_PASSWORD}:undefined,connectionTimeout:15000,socketTimeout:20000});
+      const local=env.MAIL_TRANSPORT==='sendmail';
+      transport=transportFactory(local?{sendmail:true,path:'/usr/sbin/sendmail',newline:'unix'}:{host:env.SMTP_HOST,port:Number(env.SMTP_PORT||587),secure:env.SMTP_PORT==='465',requireTLS:env.SMTP_PORT!=='465',auth:env.SMTP_USER?{user:env.SMTP_USER,pass:env.SMTP_PASSWORD_B64?Buffer.from(env.SMTP_PASSWORD_B64,'base64').toString():env.SMTP_PASSWORD}:undefined,connectionTimeout:15000,socketTimeout:20000});
       for(const m of query('SELECT * FROM outbox WHERE sent IS NULL AND attempts<20 ORDER BY rowid LIMIT 20')) {
         if(m.category==='loyalty'&&!query('SELECT id FROM customers WHERE id=? AND marketing_email=1',[m.customer_id]).length){transaction(()=>run('DELETE FROM outbox WHERE id=?',[m.id]));result.skipped++;continue;}
         try {
           const response=await transport.sendMail({from:env.SMTP_FROM||`${venue.name} <${venue.email}>`,to:m.recipient,replyTo:venue.email,subject:m.subject,text:m.body,
             attachments:(m.attachments_json?JSON.parse(m.attachments_json):[]).filter(file=>/^[a-f0-9-]+\.(pdf|png|jpg|webp)$/.test(file)).map(file=>({filename:file,path:path.join(assets,file)})),
             messageId:`<${m.id}@${new URL(env.PUBLIC_URL).hostname}>`});
-          if(!response.accepted?.length)throw Error('SMTP did not accept a recipient.');
+          // Nodemailer resolves sendmail only after a successful child exit.
+          if(!local&&!response.accepted?.length)throw Error('SMTP did not accept a recipient.');
           transaction(()=>run('UPDATE outbox SET sent=?,error=NULL WHERE id=?',[new Date().toISOString(),m.id]));result.accepted++;
         }catch{transaction(()=>run('UPDATE outbox SET attempts=attempts+1,error=? WHERE id=?',['Delivery failed; check SMTP configuration',m.id]));result.failed++;}
       }

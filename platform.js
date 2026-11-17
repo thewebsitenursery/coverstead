@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import {mailTransportConfigured} from './mail-delivery.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import {query,run,transaction,bookings} from './store.js';
@@ -68,7 +69,7 @@ export function registerPlatform(app,throttle) {
     next();
   });
   app.get('/api/admin/me',auth,(req,res)=>res.json({user:req.user,enterprise,demo}));
-  app.get('/api/admin/settings',auth,role('owner'),(_req,res)=>res.json({venue,defaults,draft:JSON.parse(query("SELECT value FROM settings WHERE key='draft'")[0]?.value||'null'),emailReady:!!process.env.SMTP_HOST&&process.env.EMAIL_DNS_READY==='true'&&!demo}));
+  app.get('/api/admin/settings',auth,role('owner'),(_req,res)=>res.json({venue,defaults,draft:JSON.parse(query("SELECT value FROM settings WHERE key='draft'")[0]?.value||'null'),emailReady:mailTransportConfigured()&&process.env.EMAIL_DNS_READY==='true'&&!demo}));
   app.post('/api/admin/draft',auth,role('owner'),(req,res)=>{
     const draft=JSON.stringify(req.body);if(draft.length>100000)return res.status(400).json({error:'Draft is too large.'});
     transaction(()=>run("INSERT INTO settings(key,value) VALUES('draft',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[draft]));res.json({ok:true});

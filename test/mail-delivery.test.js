@@ -42,5 +42,15 @@ test('real SMTP dialogue accepts synthetic mail, records rejection, and suppress
   assert.equal(query("SELECT id FROM outbox WHERE id='withdrawn'").length,0);
   const disabled=createMailSender({query,run,transaction,venue:{},assets:directory,env:{...env,EMAIL_DNS_READY:'false'},transportFactory:()=>{throw Error('Must not connect');}});
   assert.equal((await disabled()).accepted,0);
+  // Exercise Nodemailer's real child-process transport without delivering mail.
+  transaction(()=>run('DELETE FROM outbox'));
+  const sink=path.join(directory,'sendmail-sink');
+  fs.writeFileSync(sink,`#!${process.execPath}\nprocess.stdin.resume();process.stdin.on('end',()=>process.exit(process.argv.some(x=>x.includes('reject@'))?75:0));\n`,{mode:0o700});
+  transaction(()=>{for(const [id,recipient]of [['local-ok','guest@example.invalid'],['local-fail','reject@example.invalid']])run('INSERT INTO outbox(id,recipient,subject,body,attachments_json) VALUES(?,?,?,?,?)',[id,recipient,'Synthetic local transport','No real guest data','[]']);});
+  const local=createMailSender({query,run,transaction,venue:{name:'Synthetic Inn',email:'venue@example.invalid'},assets:directory,env:{MAIL_TRANSPORT:'sendmail',SMTP_FROM:'sender@example.invalid',EMAIL_DNS_READY:'true',PUBLIC_URL:'https://example.invalid'},transportFactory:options=>{
+   assert.equal(options.sendmail,true);assert.equal(options.path,'/usr/sbin/sendmail');return nodemailer.createTransport({...options,path:sink});
+  }});
+  const localResult=await local();assert.equal(localResult.accepted,1);assert.equal(localResult.failed,1);
+  assert.ok(query("SELECT sent FROM outbox WHERE id='local-ok'")[0].sent);assert.equal(query("SELECT attempts FROM outbox WHERE id='local-fail'")[0].attempts,1);
  }finally{for(const socket of sockets)socket.destroy();await new Promise(resolve=>smtp.close(resolve));fs.rmSync(directory,{recursive:true,force:true});}
 });

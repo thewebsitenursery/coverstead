@@ -13,3 +13,5 @@ Before opening a real venue:
 5. Record the date, provider and outcome privately, without credentials. Enable venue email only after the rehearsal succeeds.
 
 See [Nodemailer SMTP transport](https://nodemailer.com/smtp) for supported transport options. The local SMTP test deliberately disables TLS only on its isolated receiver; production settings retain TLS enforcement.
+
+Hosted deployments may select `MAIL_TRANSPORT=sendmail` with an explicit authorised `SMTP_FROM` and `EMAIL_DNS_READY=true`. This uses `/usr/sbin/sendmail` through Nodemailer; the venue email remains Reply-To. SMTP stays the default. Test successful and failed child exits are covered by the mail rehearsal, but acceptance by the server is not proof of inbox delivery. Verify the hosted sender's DNS and a real booking email before recording venue readiness.

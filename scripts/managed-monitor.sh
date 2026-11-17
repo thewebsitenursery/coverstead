@@ -13,7 +13,7 @@ export ENV_FILE="$app/data/config.env"
 port=$(node --input-type=module -e 'import "./env.js"; console.log(Number(process.env.PORT))')
 if ! curl --max-time 10 -fsS -H 'X-Coverstead-Check: 1' -H 'Host: coverstead.net' "http://127.0.0.1:$port/api/platform" >/dev/null; then
   # The scoped stop script verifies executable/cwd/PID before signalling it.
-  "$app/stop"
-  "$app/start"
+  "$app/stop" || true
+  "$app/start" || true
 fi
-node scripts/managed-health.js
+timeout 45s node scripts/managed-alert.js

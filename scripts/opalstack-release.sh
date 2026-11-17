@@ -64,6 +64,11 @@ trap recover ERR
 "$app/stop"
 stopped=1
 (cd "$old"; ENV_FILE="$app/data/config.env" npm run backup) | tee "$app/releases/$release_id-backup.txt"
+if [ -f "$app/data/managed/registry.json" ]; then
+  while IFS= read -r config; do
+    (cd "$old"; ENV_FILE="$config" npm run backup)
+  done < <(cd "$old"; MANAGED_ROOT="$app/data/managed" node --input-type=module -e 'import {managedRegistry} from "./managed.js";import path from "node:path";const r=managedRegistry(process.env.MANAGED_ROOT);for(const v of r.read().venues)console.log(path.join(r.root,v.slug,"config.env"));')
+fi
 ln -sfn "releases/$release_id/coverstead-community" "$app/current"
 switched=1
 "$app/start"

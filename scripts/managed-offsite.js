@@ -26,7 +26,7 @@ if(!selected.length)throw Error('No complete snapshots to copy.');
 // enquiry records, socket files, logs, or the encryption-password file.
 if(registry)selected.push(path.join(registry.root,'registry.json'));
 const source=path.resolve('public/downloads/coverstead-community.zip');if(!fs.existsSync(source))throw Error('Build the matching source archive before backing up.');selected.push(source);
-for(const args of [['backup','--quiet','--tag','coverstead-managed',...selected],['check','--read-data-subset=10%']]){
+for(const args of [['backup','--quiet','--tag','coverstead-managed',...selected],['check','--read-data-subset=10%'],['forget','--tag','coverstead-managed','--group-by','host,tags','--keep-within','35d','--keep-last','1','--prune'],['check']]){
  const result=spawnSync(command,args,{env:process.env,stdio:['ignore','ignore','pipe'],timeout:600000});
  if(result.status!==0)throw Error('Off-server backup/check failed. Inspect the private storage configuration; no success marker was written.');
 }

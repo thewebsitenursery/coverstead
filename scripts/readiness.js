@@ -1,4 +1,5 @@
 import '../env.js';
+import {mailTransportConfigured} from '../mail-delivery.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import initSqlJs from 'sql.js';
@@ -26,7 +27,7 @@ try{
  const failed=db.exec('SELECT count(*) FROM outbox WHERE sent IS NULL AND attempts>0')[0]?.values[0]?.[0]||0;
  checks.push({name:'Email queue',status:failed?'blocked':'info',pending,failed,detail:'SMTP acceptance does not prove inbox delivery.'});
 }catch{add('Readable venue database',false,'Database is missing or could not be checked; no private records were printed.');}finally{db?.close();}
-add('Email configuration declared ready',!!env.SMTP_HOST&&env.EMAIL_DNS_READY==='true','This checks configuration only; confirm receipt of a controlled real test separately.');
+add('Email configuration declared ready',mailTransportConfigured(env)&&env.EMAIL_DNS_READY==='true','This checks configuration only; confirm receipt of a controlled real test separately.');
 const backupRoot=path.resolve(env.BACKUP_DIR||'data/backups');
 let recent=false;
 if(fs.existsSync(backupRoot))for(const entry of fs.readdirSync(backupRoot,{withFileTypes:true})){

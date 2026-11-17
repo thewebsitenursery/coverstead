@@ -10,9 +10,12 @@ test('running-worker snapshot restores exact database rows and excludes enquirie
  try{
   const env={PATH:process.env.PATH,ENV_FILE:path.join(root,'config.env'),PUBLIC_URL:'https://example.invalid',DB_PATH:path.join(root,'data.sqlite'),ASSET_PATH:path.join(root,'assets'),BACKUP_DIR:path.join(root,'backups'),NO_LISTEN:'true'};
   fs.writeFileSync(env.ENV_FILE,'STRIPE_BILLING_ENABLED=false\n');fs.mkdirSync(path.join(root,'enquiries'));fs.writeFileSync(path.join(root,'enquiries','private.json'),'Do not include enquiry records');
+  const expired=path.join(env.BACKUP_DIR,'2020-01-01T00-00-00-000Z');fs.mkdirSync(expired,{recursive:true});fs.writeFileSync(path.join(expired,'snapshot.json'),JSON.stringify({version:1,created:'2020-01-01T00:00:00Z'}));
+  const unrecognised=path.join(env.BACKUP_DIR,'2020-01-02T00-00-00-000Z');fs.mkdirSync(unrecognised);fs.writeFileSync(path.join(unrecognised,'operator-note'),'Retain for inspection');
   const child=spawnSync(process.execPath,['--input-type=module','-e',`import './server.js';import {run,transaction} from './store.js';import {snapshotManaged} from './managed-backup.js';transaction(()=>run("INSERT INTO bookings(id,reference,name,status) VALUES('test','TEST','Synthetic','confirmed')"));console.log(JSON.stringify(snapshotManaged()));`],{env,encoding:'utf8',timeout:10000});
   assert.equal(child.status,0,child.stderr);const snapshot=JSON.parse(child.stdout).directory;
   assert.equal(fs.existsSync(path.join(snapshot,'enquiries')),false);assert.equal(fs.statSync(path.join(snapshot,'config.env')).mode&0o777,0o600);
+  assert.equal(fs.existsSync(expired),false);assert.equal(fs.existsSync(unrecognised),true);
   const restored=spawnSync(process.execPath,['scripts/rehearse-backup.js',snapshot],{encoding:'utf8',timeout:30000});assert.equal(restored.status,0,restored.stderr);assert.equal(JSON.parse(restored.stdout).result,'passed');
  }finally{fs.rmSync(root,{recursive:true,force:true});}
 });

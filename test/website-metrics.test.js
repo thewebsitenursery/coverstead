@@ -55,6 +55,6 @@ test('search discovery points to useful public routes, never billing or staff wo
   const sitemap=await request(app,'/sitemap.xml');assert.equal(sitemap.status,200);
   assert.match(sitemap.text,/https:\/\/coverstead.net\/pub-booking-system/);
   assert.doesNotMatch(sitemap.text,/\/billing|\/onboarding|\/admin|\/enterprise/);
-  for(const route of ['/managed','/pub-booking-system','/switching-from-paper','/website-data']) assert.equal((await request(app,route)).status,200);
+  for(const route of ['/managed','/pub-booking-system','/switching-from-paper','/website-data','/service-terms','/privacy','/data-processing']) assert.equal((await request(app,route)).status,200);
   assert.match((await request(app,'/robots.txt')).text,/Sitemap: https:\/\/coverstead.net\/sitemap.xml/);
 });
