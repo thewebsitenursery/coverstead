@@ -49,13 +49,28 @@ try {
     env: {PATH: process.env.PATH || '', ENV_FILE: path.join(temporary, 'no-credentials.env'), NO_LISTEN: 'true', PUBLIC_URL: 'http://localhost:3100', HOST: '127.0.0.1', DB_PATH: restored, ASSET_PATH: path.join(temporary, 'assets'), COOKIE_SECURE: 'false', EDITION: 'enterprise', DEMO_MODE: 'false', SMTP_HOST: '', EMAIL_DNS_READY: 'false', STRIPE_BILLING_ENABLED: 'false', ONLINE_DEPOSITS_ENABLED: 'false', WEBSITE_METRICS_ENABLED: 'false'}
   });
   if (result.status !== 0 || result.error) throw Error('Restored application rehearsal failed. Inspect the backup and compatible release privately.');
+  const finishedAt = Date.now(), expiredIdentityRowsRemoved = {};
   const after = new SQL.Database(fs.readFileSync(restored));
   for (const name of tables) {
     const rows = after.exec('SELECT * FROM "' + name.replaceAll('"', '""') + '" ORDER BY rowid');
-    if (JSON.stringify(rows) !== JSON.stringify(before[name])) throw Error('Restored data differs after application startup.');
+    let expected = before[name];
+    // Startup deliberately expires identity links and their one-day rate-limit
+    // records. Permit only deletion of those already-expired rows; still compare
+    // every retained row and every other table exactly. Never load saved keys.
+    if (['billing_identity_tokens', 'billing_identity_requests'].includes(name) && expected.length) {
+      const {columns, values} = expected[0];
+      const column = columns.indexOf(name === 'billing_identity_tokens' ? 'expires' : 'created');
+      const cutoff = finishedAt - (name === 'billing_identity_requests' ? 86400000 : 0);
+      const retained = new Set((rows[0]?.values || []).map(row => JSON.stringify(row)));
+      const filtered = values.filter(row => !(Number.isFinite(row[column]) && row[column] <= cutoff && !retained.has(JSON.stringify(row))));
+      const removed = values.length - filtered.length;
+      if (removed) expiredIdentityRowsRemoved[name] = removed;
+      expected = filtered.length ? [{columns, values: filtered}] : [];
+    }
+    if (JSON.stringify(rows) !== JSON.stringify(expected)) throw Error('Restored data differs after application startup.');
   }
   if (after.exec('PRAGMA integrity_check')[0]?.values[0]?.[0] !== 'ok') throw Error('Restored database integrity failed.');
   after.close();
   if (digest(fs.readFileSync(source)) !== digest(original)) throw Error('Original backup changed during rehearsal.');
-  console.log(JSON.stringify({result: 'passed', tablesVerified: tables.length, checks: ['backup integrity', 'isolated application startup', 'health response', 'authentication protection', 'manual response', 'all original table rows unchanged', 'asset copy hashes', 'original backup unchanged'], limits: 'No owner login, outgoing email, live payment, DNS, off-server disaster recovery or real-service booking was exercised. Saved credentials were not loaded.'}, null, 2));
+  console.log(JSON.stringify({result: 'passed', tablesVerified: tables.length, expiredIdentityRowsRemoved, checks: ['backup integrity', 'isolated application startup', 'health response', 'authentication protection', 'manual response', 'original rows unchanged except documented identity expiry', 'asset copy hashes', 'original backup unchanged'], limits: 'No owner login, outgoing email, live payment, DNS, off-server disaster recovery or real-service booking was exercised. Saved credentials were not loaded.'}, null, 2));
 } finally { fs.rmSync(temporary, {recursive: true, force: true}); }
