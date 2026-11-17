@@ -21,6 +21,13 @@ case "${1:-}" in
     if (( now-last >= 900 )); then
      printf '%s\n' "$now" > "$base/operations/last-restart"
      timeout 60s /usr/local/sbin/coverstead-compose restart coverstead
+     # Compose returns when the process starts, before workers finish opening
+     # their databases. Give real HTTP checks a bounded recovery window.
+     deadline=$((SECONDS+30))
+     until timeout 8s /usr/local/sbin/coverstead-compose exec -T coverstead node scripts/managed-health.js --workers-only >/dev/null 2>&1; do
+      (( SECONDS < deadline )) || break
+      sleep 1
+     done
     fi
     flock -u 9
    fi
@@ -35,11 +42,17 @@ case "${1:-}" in
   # container never receives the backup key or encryption password.
   # A failed or interrupted attempt remains visible to the app monitor until
   # a complete verified run succeeds. The data directory contains no key.
-  touch "$base/data/offsite-failed"
-  chmod 644 "$base/data/offsite-failed"
   cleanup_backup() {
+   result=$?
    docker rm -f coverstead-offsite-job >/dev/null 2>&1 || true
    if test -f "$base/data/offsite-status.json"; then chown 1000:1000 "$base/data/offsite-status.json"; fi
+   if (( result == 0 )); then
+    rm -f "$base/data/offsite-failed"
+   else
+    touch "$base/data/offsite-failed"
+    chmod 644 "$base/data/offsite-failed"
+   fi
+   exit "$result"
   }
   trap cleanup_backup EXIT
   timeout --signal=TERM --kill-after=30s 900s docker run --rm --init --name coverstead-offsite-job \
@@ -50,7 +63,6 @@ case "${1:-}" in
    -e ENV_FILE=/run/coverstead-operations/backup.env \
    -e RESTIC_CACHE_DIR=/tmp/restic-cache \
    "$image" node scripts/managed-offsite.js
-  rm "$base/data/offsite-failed"
   ;;
  *) echo 'Usage: cloud-maintenance.sh monitor|backup' >&2; exit 2;;
 esac

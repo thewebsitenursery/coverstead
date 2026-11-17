@@ -15,6 +15,15 @@ export function snapshotManaged(env=process.env) {
   for(const [source,name] of [[env.DB_PATH,'coverstead.sqlite'],[env.ENV_FILE,'config.env']]){
     fs.copyFileSync(source,path.join(destination,name));fs.chmodSync(path.join(destination,name),0o600);
   }
+  // Recovery needs the private launch/entitlement records as well as the DB.
+  // These are evidence to review and reconcile, never automatic readiness for
+  // a replacement host. Enquiries retain their separate retention policy.
+  for(const [source,name] of [[env.MANAGED_LAUNCH_FILE,'launch.json'],[env.MANAGED_ENTITLEMENT,'entitlement.json']]){
+    if(!source||!fs.existsSync(source))continue;
+    if(!fs.lstatSync(source).isFile())throw Error('Backup requires regular operator record files.');
+    const operator=path.join(destination,'operator');fs.mkdirSync(operator,{recursive:true,mode:0o700});
+    fs.copyFileSync(source,path.join(operator,name));fs.chmodSync(path.join(operator,name),0o600);
+  }
   if(env.ASSET_PATH&&fs.existsSync(env.ASSET_PATH))fs.cpSync(env.ASSET_PATH,path.join(destination,'assets'),{recursive:true,filter:source=>{if(fs.lstatSync(source).isSymbolicLink())throw Error('Backup refuses asset symlinks.');return true;}});
   const digest=crypto.createHash('sha256').update(fs.readFileSync(path.join(destination,'coverstead.sqlite'))).digest('hex');
   fs.writeFileSync(path.join(destination,'snapshot.json'),JSON.stringify({version:1,created:new Date().toISOString(),databaseSha256:digest,source:process.cwd()})+'\n',{mode:0o600});

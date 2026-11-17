@@ -17,6 +17,10 @@ const host=new URL(process.env.PUBLIC_URL).hostname;
 const socketRoot=path.join(path.dirname(path.resolve(process.env.ENV_FILE||'data/config.env')),'sockets');
 fs.mkdirSync(socketRoot,{recursive:true,mode:0o700});fs.chmodSync(socketRoot,0o700);
 const workers=new Map();let stopping=false;
+function saveStatus(){
+  const status={updated:Date.now(),workers:[...workers].map(([name,w])=>({name,ready:w.ready,backupAt:w.backupAt||null,backupError:!!w.backupError}))};
+  try{fs.writeFileSync(path.join(socketRoot,'status.json.tmp'),JSON.stringify(status)+'\n',{mode:0o600});fs.renameSync(path.join(socketRoot,'status.json.tmp'),path.join(socketRoot,'status.json'));}catch{console.error('Managed status could not be saved.');}
+}
 function worker(name,config){
   let record=workers.get(name);if(record)return record;
   const socket=path.join(socketRoot,crypto.createHash('sha256').update(name).digest('hex').slice(0,20)+'.sock');
@@ -27,12 +31,13 @@ function worker(name,config){
     const env={PATH:process.env.PATH,ENV_FILE:config,INSTANCE_SOCKET:socket,NODE_ENV:'production'};
     const child=fork(path.join(source,'server.js'),[],{cwd:source,env,stdio:['ignore','inherit','inherit','ipc']});record.child=child;
     child.on('message',message=>{
-      if(message?.ready){record.ready=true;record.restarts=0;process.send?.({workerReady:name,pid:child.pid});}
+      if(message?.ready){record.ready=true;record.restarts=0;child.send({operation:'snapshot'});process.send?.({workerReady:name,pid:child.pid});}
       if(message?.snapshot){record.backupAt=message.snapshot.created;record.backupError=false;}
       if(message?.snapshotError)record.backupError=true;
+      saveStatus();
     });
     child.on('error',()=>console.error('Coverstead worker could not start: '+name));
-    child.on('exit',()=>{record.ready=false;if(!stopping&&record.restarts++<5)setTimeout(start,Math.min(30000,1000*2**record.restarts)).unref();});
+    child.on('exit',()=>{record.ready=false;saveStatus();if(!stopping&&record.restarts++<5)setTimeout(start,Math.min(30000,1000*2**record.restarts)).unref();});
   };start();return record;
 }
 function routes(){
@@ -45,11 +50,11 @@ function routes(){
   return new Map(entries.map(([hostname,name,config])=>[hostname,worker(name,config)]));
 }
 let current=routes();
+saveStatus();
 setInterval(()=>{try{current=routes();}catch{console.error('Managed registry reload failed; existing routes retained.');}},30000).unref();
 setInterval(()=>{
   for(const record of workers.values())if(record.ready&&Date.now()-(record.backupAt||0)>3600e3)record.child.send({operation:'snapshot'});
-  const status={updated:Date.now(),workers:[...workers].map(([name,w])=>({name,ready:w.ready,backupAt:w.backupAt||null,backupError:!!w.backupError}))};
-  try{fs.writeFileSync(path.join(socketRoot,'status.json.tmp'),JSON.stringify(status)+'\n',{mode:0o600});fs.renameSync(path.join(socketRoot,'status.json.tmp'),path.join(socketRoot,'status.json'));}catch{console.error('Managed status could not be saved.');}
+  saveStatus();
 },60000).unref();
 const server=http.createServer((req,res)=>{
   const authority=req.headers.host||'';

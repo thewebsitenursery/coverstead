@@ -40,14 +40,22 @@ test('gateway isolates venue owners, rejects unknown hosts and restores data aft
   execFileSync(process.execPath,['scripts/managed-venue.js','create',managed,slug,slug+'@example.invalid','test']);
   configs.push(fs.readFileSync(path.join(managed,slug,'config.env'),'utf8'));
  }
- const config=path.join(root,'config.env');fs.writeFileSync(config,`PUBLIC_URL=https://coverstead.net\nPORT=0\nHOST=127.0.0.1\nDB_PATH=${root}/product.sqlite\nASSET_PATH=${root}/assets\nMANAGED_ROOT=${managed}\nSTRIPE_BILLING_ENABLED=false\n`);
+ const config=path.join(root,'config.env');fs.writeFileSync(config,`PUBLIC_URL=https://coverstead.net\nPORT=0\nHOST=127.0.0.1\nDB_PATH=${root}/product.sqlite\nASSET_PATH=${root}/assets\nBACKUP_DIR=${root}/backups\nMANAGED_ROOT=${managed}\nSTRIPE_BILLING_ENABLED=false\n`);
  async function start(){gateway=fork('managed-gateway.js',[],{env:{PATH:process.env.PATH,ENV_FILE:config},stdio:['ignore','ignore','pipe','ipc']});let errors='';gateway.stderr.on('data',b=>{errors+=b;});return new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Gateway failed: '+errors)),15000);gateway.on('message',m=>{if(m.workerReady)workerPids.set(m.workerReady,m.pid);if(m.gatewayReady){clearTimeout(timer);resolve(m.port);}});gateway.once('exit',()=>{clearTimeout(timer);reject(Error(errors));});});}
  async function stop(){if(gateway.exitCode!==null||gateway.signalCode!==null){gateway=null;return;}const exited=new Promise(resolve=>gateway.once('exit',resolve));gateway.kill('SIGTERM');await exited;gateway=null;}
  let port;
  async function call(host,url,method='GET',body,cookie){return new Promise((resolve,reject)=>{const r=http.request({hostname:'127.0.0.1',port,path:url,method,headers:{Host:host,Origin:'https://'+host,'Content-Type':'application/json',...(cookie?{Cookie:cookie}:{})}},response=>{const chunks=[];response.on('data',c=>chunks.push(c));response.on('end',()=>{const text=Buffer.concat(chunks).toString();resolve({status:response.statusCode,headers:{get:name=>{const value=response.headers[name];return Array.isArray(value)?value[0]:value;}},json:async()=>JSON.parse(text),text:async()=>text});});});r.on('error',reject);r.end(body?JSON.stringify(body):undefined);});}
  async function ready(host){let last;for(let n=0;n<100;n++){const r=await call(host,'/api/platform');if(r.status===200)return r.json();last=r.status+' '+await r.text();await new Promise(resolve=>setTimeout(resolve,100));}throw Error('Worker not ready: '+host+' '+last);}
+ async function freshSnapshots(since){
+  for(let n=0;n<100;n++){
+   const status=JSON.parse(fs.readFileSync(path.join(root,'sockets/status.json')));
+   if(status.workers.length===3&&status.workers.every(w=>w.ready&&!w.backupError&&w.backupAt>=since))return;
+   await new Promise(resolve=>setTimeout(resolve,50));
+  }
+  assert.fail('Startup must publish healthy status and fresh snapshots without waiting for the minute timer');
+ }
  try{
-  port=await start();await ready('coverstead.net');await ready('first-pub.coverstead.net');await ready('second-pub.coverstead.net');
+  const firstStart=Date.now();port=await start();await ready('coverstead.net');await ready('first-pub.coverstead.net');await ready('second-pub.coverstead.net');await freshSnapshots(firstStart);
   assert.equal((await call('unknown.coverstead.net','/api/platform')).status,421);
   const canonical=await call('www.coverstead.net','/manual?from=www');assert.equal(canonical.status,308);assert.equal(canonical.headers.get('location'),'https://coverstead.net/manual?from=www');
   const token=JSON.parse(configs[0].match(/^SETUP_TOKEN=(.+)$/m)[1]);
@@ -59,6 +67,6 @@ test('gateway isolates venue owners, rejects unknown hosts and restores data aft
   const crashed=workerPids.get('first-pub');process.kill(crashed,'SIGKILL');
   for(let i=0;i<100&&workerPids.get('first-pub')===crashed;i++)await new Promise(resolve=>setTimeout(resolve,100));
   assert.notEqual(workerPids.get('first-pub'),crashed);assert.equal((await ready('first-pub.coverstead.net')).needsOwner,false);
-  await stop();port=await start();assert.equal((await ready('first-pub.coverstead.net')).needsOwner,false);assert.equal((await ready('second-pub.coverstead.net')).needsOwner,true);
+  await stop();const restarted=Date.now();port=await start();assert.equal((await ready('first-pub.coverstead.net')).needsOwner,false);assert.equal((await ready('second-pub.coverstead.net')).needsOwner,true);await freshSnapshots(restarted);
  }finally{if(gateway)await stop();fs.rmSync(root,{recursive:true,force:true});}
 });
