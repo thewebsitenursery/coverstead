@@ -1,6 +1,18 @@
 # DigitalOcean migration: staged deployment
 
-Status: preparation only. The current website stays on its existing host until the new server has passed the checks below. Account registration, VM provisioning, public HTTPS, email delivery, off-server recovery and the final switch are separate steps. Preparing these files does not establish any of them.
+Status: cloud rehearsal in progress, 17 November 2026. A dedicated London VM now runs the synthetic preview with valid HTTPS. The current website and mailbox remain on their existing host. This is not the production switch or a live billing launch. The checks below separate verified staging behavior from the work still needed before cutover.
+
+## Verified cloud rehearsal
+
+The dedicated Ubuntu 24.04 VM has Docker Engine and Compose from the official repository, host updates, SSH key authentication, an operator-address SSH firewall rule and public HTTPS. The application uses Node 24, UID 1000 and a read-only root filesystem. Port 3100 remains loopback-only. The two new rehearsal DNS records use a 300-second TTL; the apex, `www`, existing venue host, nameservers and mail records remain unchanged.
+
+The 74 application tests passed on the VM. Trusted HTTPS requests verified owner setup/login, secure cookies, a synthetic booking, retry deduplication, staff notes, CSV export and product/venue session isolation. A complete VM reboot restored both containers automatically, and the saved owner login and booking still worked. A consistent venue snapshot was copied to the separate operator Mac: database/asset integrity, unchanged table rows, saved owner login, the original booking and a new booking in the restored staff diary passed. This manual transfer is not an automated encrypted offsite backup schedule.
+
+The deployed proxy restricts the preview to the operator's current public IP, except `/api/platform` for external health monitoring. The example Caddy file below does not include this extra access restriction. Update the operator address deliberately if it changes; do not remove the restriction merely to fix access. Keep synthetic data only and all outgoing mail, payments and enquiries disabled during this stage.
+
+CPU, memory and disk resource alerts are configured for the rehearsal VM. An external HTTPS check watches the product health endpoint, with outage and certificate-expiry notifications to the operator mailbox. This detects a whole-site outage but does not establish the health of every venue, backup or mail queue. Alert delivery, per-worker health supervision and backup failure alerts need verification before cutover. DigitalOcean provides [resource monitoring at no additional cost](https://docs.digitalocean.com/products/monitoring/details/pricing/) and [one Uptime check allowance](https://docs.digitalocean.com/products/uptime/details/pricing/); additional checks are chargeable.
+
+Remaining work includes all four mail paths and inbox receipt, automated encrypted offsite backups and recovery, bounded unhealthy-process handling, Stripe test webhook checks, provider-processing evidence and the final complete-data migration rehearsal. Keep live readiness gates closed.
 
 ## Initial server
 
