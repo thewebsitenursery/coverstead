@@ -10,7 +10,7 @@ Start with the essentials. Save the answers as a draft; ask the optional operati
 - What is your existing website address?
 - What time zone do you operate in? This release uses GBP.
 - Is this a pub, restaurant, café, bistro, hotel dining room or another venue?
-- Are you self hosting, or choosing the £10 monthly / £100 annual managed plan? Managed enrolment and billing are not connected yet.
+- Are you self hosting, or choosing the £25 monthly / £250 annual managed plan? Managed enrolment and billing are not connected yet.
 - Who should receive operational enquiries, billing and incident notices? Managed-service handover item.
 - Do you need separate installations for more than one venue? This release uses one isolated process and database per venue; no shared multi-venue console yet.
 

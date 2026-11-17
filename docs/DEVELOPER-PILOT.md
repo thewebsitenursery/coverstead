@@ -43,4 +43,4 @@ The helper creates uniquely named containers and volumes, binds to loopback, che
 
 At the first real service, record whether the diary matched the team's operation and what failed. After four weeks, ask whether the venue still uses it and why. With consent, retain the minimum operational evidence needed for follow-up; keep contact details in the private enquiry workflow.
 
-A managed-service conversation should cover the published price (£10/month or £100/year after the free first month), current missing features, support expectations and actual operating costs. Do not start the free month or take live payment until the hosted venue and service terms are ready. A demo completion, download or expression of interest is not a paying customer.
+A managed-service conversation should cover the published price (£25/month or £250/year after the free first month), current missing features, support expectations and actual operating costs. Do not start the free month or take live payment until the hosted venue and service terms are ready. A demo completion, download or expression of interest is not a paying customer.

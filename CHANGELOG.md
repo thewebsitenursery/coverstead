@@ -1,5 +1,10 @@
 # Changelog
 
+## Pricing update — 17 November 2026
+
+- Hosted Enterprise is £25 per venue per month or £250 per year, following the first free calendar month. The new offer replaces the initial pilot pricing below. Community remains free and open source.
+- Update the public pages, billing validation and Stripe catalog setup to use the new amounts. Cancelled accounts can restart on replacement prices without receiving another free trial. Live enrolment remains gated by the hosted-launch requirements.
+
 ## 0.2.0-pilot.1 — 17 November 2026
 
 A versioned pilot for independent venues and their developers. This is early software, with managed enrolment closed and Stripe in test mode only.

@@ -6,7 +6,7 @@
 
 Coverstead: Full tables. Calmer service. Built from the locally recovered Red Lion reservation source. The free tool is positioned as Alistair giving something useful back to independent hospitality businesses.
 
-Community is MIT-licensed and self hosted. Enterprise includes the first month free, followed by £10 per venue per month or £100 per venue per year paid upfront. The free month precedes either paid option. No setup fee, per-cover commission, or separate annual feature tier. Coverstead is operated by Classicbikemerch Ltd. The owner confirmed that the company is not VAT-registered; no VAT is added or collected in the test integration. Final service terms and live launch readiness remain to be completed.
+Community is MIT-licensed and self hosted. Enterprise includes the first month free, followed by £25 per venue per month or £250 per venue per year paid upfront. The free month precedes either paid option. No setup fee, per-cover commission, or separate annual feature tier. Coverstead is operated by Classicbikemerch Ltd. The owner confirmed that the company is not VAT-registered; no VAT is added or collected in the test integration. Final service terms and live launch readiness remain to be completed.
 
 The source is MIT-licensed, including the optional Enterprise administration modules. There is no DRM or proprietary licence activation. The commercial offer is the convenience of hosting, updates, backup operations and support. EDITION changes the interface and server-enforced feature availability on an installation; it is not proof of payment.
 
@@ -33,7 +33,7 @@ The source is MIT-licensed, including the optional Enterprise administration mod
 - Public full user manual at /manual, GitHub contribution links, and a browser-only customer/staff walkthrough at /demo. Synthetic demo records stay in sessionStorage and never enter the venue database; it covers sample booking, diary filters, status/notes and printing, with simplified capacity rules.
 - Docker Compose, HTTPS proxy example, backup helper, email setup, password reset and Opalstack deployment instructions.
 - Rebuildable Community ZIP download with source allowlisting and private-data exclusion; operations/recovery documentation.
-- Stripe test-mode subscription accounts, hosted Checkout, one calendar month trial, £10 monthly / £100 annual prices, Customer Portal and signed idempotent webhooks. Billing identities are separate from venue staff.
+- Stripe test-mode subscription accounts, hosted Checkout, one calendar month trial, £25 monthly / £250 annual prices, Customer Portal and signed idempotent webhooks. Billing identities are separate from venue staff.
 - Subscription state refresh, scheduled cancellation (including explicit cancel_at timestamps), duplicate checkout prevention and one trial per billing account. Live keys are rejected.
 
 ## Release boundaries
@@ -112,3 +112,9 @@ Live Stripe credentials now authenticate a GB account for CLASSICBIKEMERCH LTD w
 An encrypted Restic repository is configured in a private Backblaze B2 EU Central bucket, with free-usage caps and alerts. Its first product and rehearsal snapshots were restored on the operator’s separate Mac and passed database/asset recovery checks. Hosted-launch terms, privacy and processing pages include the confirmed company identity. They remain marked as preparation documents: Opalstack’s processing agreement and its infrastructure backup/deletion arrangements have not been verified. The published provider terms describe 12-week infrastructure backup retention; the app’s shorter backup schedule must not be represented as covering those copies. A specific provider clarification request was sent to Opalstack support on 17 November 2026; no new terms or charges were accepted. Do not populate the global privacy launch evidence or open paid enrolment until the actual contractual arrangements are resolved.
 
 A subsequent restore of the encrypted backup onto the operator’s separate Mac recovered the synthetic service booking, accepted the saved owner password and supported a new booking and diary entry with all outgoing mail and payments disabled. The public rehearsal also retained its owner authentication and booking after the release restart. Daily encrypted backup scheduling and health-change alerts are configured through Coverstead-only jobs; the repository’s storage limits and the on-host monitor’s limitations still require operator attention.
+
+## Pricing decision — 17 November 2026
+
+The owner approved £25 per venue per month or £250 per venue per year, with the first calendar month free on either plan. Public pages, operator guides, billing validation and the Stripe catalog helper use those amounts. New catalog lookup keys end in `_v2`; old price records remain historical references. This pricing change does not open live enrolment or waive the outstanding provider-processing confirmation.
+
+Both new plans were checked against real Stripe sandbox Checkout sessions: £0 was due initially and the recurring prices were £25/month and £250/year. The sessions were expired without completing subscriptions. The 74-test suite checks both calendar-month trials, rejection of retired amounts, and restarting a cancelled account on the current catalog.

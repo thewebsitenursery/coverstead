@@ -92,12 +92,13 @@ export function createBilling({config=billingConfig(),client,sendIdentityEmail,i
     if(live&&!managed.status(a.email,mode).ready)throw fail('Your hosted venue must be ready before you start your subscription. Contact hello@coverstead.net.',409);
     if(live&&acceptedTerms!==true)throw fail('Please accept the service terms and recurring subscription before continuing.');
     const priceId=plan==='monthly'?config.monthly:config.annual;
-    a=await reconcile(a);
+    // A terminal subscription cannot resume; a new checkout may use replacement prices.
+    if(!terminal.has(a.status))a=await reconcile(a);
     if(a.subscription_id&&!terminal.has(a.status))throw fail('You already have a subscription. Use Manage billing to update or cancel it.',409);
     if(a.checkout_session_id){
       const previous=await stripe.checkout.sessions.retrieve(a.checkout_session_id);
       if(previous.status==='complete'){
-        if(previous.subscription){a=await reconcile(a,idOf(previous.subscription));if(!terminal.has(a.status))throw fail('Your checkout is complete. Refresh your billing status.',409);}
+        if(previous.subscription&&!(terminal.has(a.status)&&idOf(previous.subscription)===a.subscription_id)){a=await reconcile(a,idOf(previous.subscription));if(!terminal.has(a.status))throw fail('Your checkout is complete. Refresh your billing status.',409);}
       }else if(previous.status==='open'){
         if(a.checkout_plan===plan)return {url:previous.url};
         await stripe.checkout.sessions.expire(previous.id);
@@ -112,7 +113,7 @@ export function createBilling({config=billingConfig(),client,sendIdentityEmail,i
     }
     // Refuse accidental use of another company's catalog or client-supplied amounts.
     const price=await stripe.prices.retrieve(priceId);
-    if(!!price.livemode!==live||!price.active||price.currency!=='gbp'||price.unit_amount!==(plan==='monthly'?1000:10000)||price.recurring?.interval!==(plan==='monthly'?'month':'year')||price.recurring?.interval_count!==1||price.metadata?.application!=='coverstead')throw fail('The Coverstead price needs administrator review.',503);
+    if(!!price.livemode!==live||!price.active||price.currency!=='gbp'||price.unit_amount!==(plan==='monthly'?2500:25000)||price.recurring?.interval!==(plan==='monthly'?'month':'year')||price.recurring?.interval_count!==1||price.metadata?.application!=='coverstead')throw fail('The Coverstead price needs administrator review.',503);
     if(!a.checkout_attempt){
       const now=Math.floor(Date.now()/1000);
       transaction(()=>run('UPDATE billing_accounts SET checkout_attempt=?,checkout_plan=?,checkout_trial_end=?,checkout_expires_at=? WHERE id=?',[crypto.randomUUID(),plan,a.trial_used?null:oneMonthFrom(now),now+3600,a.id]));a=account(a.id);
@@ -161,7 +162,7 @@ export function createBilling({config=billingConfig(),client,sendIdentityEmail,i
       if(req.path==='/config')return next();
       if(!ready())return res.status(503).json({error:'Stripe billing is not configured yet.'});next();
     });
-    app.get('/api/billing/config',(_req,res)=>res.json({enabled:ready(),identityEmailReady:identity.ready,identityTestOnly:!live,testMode:!live,assistedEnrolment:live,termsVersion:config.termsVersion||'2026-11-17',company:'Classicbikemerch Ltd',vatRegistered:false,monthly:1000,annual:10000,currency:'GBP'}));
+    app.get('/api/billing/config',(_req,res)=>res.json({enabled:ready(),identityEmailReady:identity.ready,identityTestOnly:!live,testMode:!live,assistedEnrolment:live,termsVersion:config.termsVersion||'2026-11-17',company:'Classicbikemerch Ltd',vatRegistered:false,monthly:2500,annual:25000,currency:'GBP'}));
     const acknowledgement={ok:true,message:'If this address can receive a link, it will arrive shortly. Check your inbox or request another link after a minute.'};
     app.post('/api/billing/register',throttle,route(async(req,res)=>{
       if(!identity.ready)throw fail('Account email is not configured yet.',503);

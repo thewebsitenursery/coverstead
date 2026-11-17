@@ -13,9 +13,9 @@ const {createBilling,oneMonthFrom}=await import('../billing.js');
 const {query,run,transaction}=await import('../store.js');
 const config={enabled:true,key:'sk_test_fixture',webhookSecret:'whsec_billing_fixture',monthly:'price_monthly',annual:'price_annual',portal:'bpc_coverstead',origin:'http://localhost:3100',secure:true};
 const sdk=new Stripe(config.key),sessions=new Map(),subscriptions=new Map(),checkoutCalls=[],portalCalls=[];
-let customerCount=0,sessionCount=0,retrievals=0,failNextRetrieve=false,customerFailure=false;
+let customerCount=0,sessionCount=0,retrievals=0,failNextRetrieve=false,customerFailure=false,legacyPrices=false;
 const client={webhooks:sdk.webhooks,customers:{async create(){customerCount++;if(customerFailure)throw Error('offline');return {id:'cus_'+customerCount};}},
-  prices:{async retrieve(id){return {id,active:true,livemode:false,currency:'gbp',unit_amount:id===config.monthly?1000:10000,recurring:{interval:id===config.monthly?'month':'year',interval_count:1},metadata:{application:'coverstead'}};}},
+  prices:{async retrieve(id){return {id,active:true,livemode:false,currency:'gbp',unit_amount:legacyPrices?(id===config.monthly?1000:10000):(id===config.monthly?2500:25000),recurring:{interval:id===config.monthly?'month':'year',interval_count:1},metadata:{application:'coverstead'}};}},
   checkout:{sessions:{async create(params,options){checkoutCalls.push({params,options});await new Promise(resolve=>setTimeout(resolve,10));const s={id:'cs_'+ ++sessionCount,status:'open',url:'https://checkout.stripe.com/c/pay/test_'+sessionCount};sessions.set(s.id,s);return s;},async retrieve(id){return sessions.get(id);},async expire(id){sessions.get(id).status='expired';return sessions.get(id);}}},
   subscriptions:{async retrieve(id){retrievals++;if(failNextRetrieve){failNextRetrieve=false;throw Error('offline');}return structuredClone(subscriptions.get(id));}},
   billingPortal:{sessions:{async create(params){portalCalls.push(params);return {url:'https://billing.stripe.com/p/session/test'};}}}
@@ -65,14 +65,27 @@ test('test subscription lifecycle and isolation',async t=>{
     assert.equal((await call('/api/billing/complete-identity','POST',body)).status,400);
     assert.equal((await call('/api/billing/me','GET',undefined,'cs_billing='+raw)).status,401);
   });
+  await t.test('publishes the new prices and refuses retired monthly and annual catalog amounts',async()=>{
+    const published=(await call('/api/billing/config')).json;
+    assert.equal(published.monthly,2500);assert.equal(published.annual,25000);assert.equal(published.currency,'GBP');
+    legacyPrices=true;
+    try{for(const plan of ['monthly','annual'])assert.equal((await call('/api/billing/checkout','POST',{plan},a)).status,503);}
+    finally{legacyPrices=false;}
+    assert.equal(checkoutCalls.length,0);
+  });
   await t.test('rejects anonymous and cross-origin checkout; ignores customer/price/amount supplied by the browser',async()=>{
     assert.equal((await call('/api/billing/checkout','POST',{plan:'monthly'})).status,401);
     assert.equal((await call('/api/billing/checkout','POST',{plan:'monthly'},a,{},'https://evil.invalid')).status,403);
     assert.equal((await call('/api/billing/checkout','POST',{plan:'free'},a)).status,400);
     const results=await Promise.all([call('/api/billing/checkout','POST',{plan:'monthly',price:'price_wrong',amount:1,customer:'cus_other'},a),call('/api/billing/checkout','POST',{plan:'monthly'},a)]);
     assert.ok(results.every(r=>r.status===200));assert.equal(results[0].json.url,results[1].json.url);assert.equal(checkoutCalls.length,1);assert.equal(customerCount,1);
-    const {params}=checkoutCalls[0];assert.deepEqual(params.line_items,[{price:config.monthly,quantity:1}]);assert.equal(params.customer,'cus_1');assert.equal(params.automatic_tax.enabled,false);assert.equal(params.subscription_data.billing_mode.type,'flexible');assert.equal(params.payment_method_collection,'always');assert.ok(params.subscription_data.trial_end>Date.now()/1000);assert.equal(params.payment_method_types,undefined);
+    const {params}=checkoutCalls[0];assert.deepEqual(params.line_items,[{price:config.monthly,quantity:1}]);assert.equal(params.customer,'cus_1');assert.equal(params.automatic_tax.enabled,false);assert.equal(params.subscription_data.billing_mode.type,'flexible');assert.equal(params.payment_method_collection,'always');assert.equal(params.subscription_data.trial_end,oneMonthFrom(params.expires_at-3600));assert.equal(params.payment_method_types,undefined);
     assert.equal((await call('/api/billing/me','GET',undefined,a)).json.account.status,'none');
+  });
+  await t.test('the annual plan also starts with one free calendar month',async()=>{
+    assert.equal((await call('/api/billing/checkout','POST',{plan:'annual'},b)).status,200);
+    const params=checkoutCalls.at(-1).params;assert.deepEqual(params.line_items,[{price:config.annual,quantity:1}]);
+    assert.equal(params.subscription_data.trial_end,oneMonthFrom(params.expires_at-3600));
   });
   await t.test('validates signature and mode before processing; checkout success URL grants nothing',async()=>{
     assert.equal((await webhook('evt_bad','customer.subscription.created',{}, {signature:false})).status,400);
@@ -117,6 +130,9 @@ test('test subscription lifecycle and isolation',async t=>{
   });
   await t.test('cancelled accounts may restart but never receive a second trial',async()=>{
     sub.status='canceled';subscriptions.set(sub.id,sub);await webhook('evt_cancelled','customer.subscription.deleted',{id:sub.id,customer:'cus_1'});
+    // Historical prices may be retired after cancellation; a restart must use the current catalog.
+    transaction(()=>run('UPDATE billing_accounts SET price_id=? WHERE id=?',['price_retired',first.id]));
+    sub.items.data[0].price.id='price_retired';subscriptions.set(sub.id,sub);
     const r=await call('/api/billing/checkout','POST',{plan:'annual'},a);assert.equal(r.status,200,r.text);
     const params=checkoutCalls.at(-1).params;assert.equal(params.subscription_data.trial_end,undefined);assert.deepEqual(params.line_items,[{price:config.annual,quantity:1}]);
   });

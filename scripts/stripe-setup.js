@@ -17,11 +17,11 @@ let product;
 try{product=await stripe.products.retrieve(productId);}catch(error){if(error.code!=='resource_missing')throw error;}
 if(!product)product=await stripe.products.create({id:productId,name:'Coverstead Enterprise',description:'Managed reservation software for one venue. Operated by Classicbikemerch Ltd.'+(live?'':' Test mode.'),metadata:{application:'coverstead'}},{idempotencyKey:'coverstead-product-pilot-v1'});
 if(!!product.livemode!==live||product.metadata.application!=='coverstead')throw Error('Unexpected existing product. No changes made to it.');
-for(const [plan,amount,interval]of [['MONTHLY',1000,'month'],['ANNUAL',10000,'year']]){
-  const lookup='coverstead_enterprise_gbp_'+plan.toLowerCase()+'_v1';
+for(const [plan,amount,interval]of [['MONTHLY',2500,'month'],['ANNUAL',25000,'year']]){
+  const lookup='coverstead_enterprise_gbp_'+plan.toLowerCase()+'_v2';
   let price=(await stripe.prices.list({lookup_keys:[lookup],limit:1})).data[0];
   if(!price)price=await stripe.prices.create({product:product.id,currency:'gbp',unit_amount:amount,recurring:{interval},lookup_key:lookup,metadata:{application:'coverstead'}},{idempotencyKey:lookup});
-  if(price.product!==product.id||!!price.livemode!==live||price.unit_amount!==amount||price.currency!=='gbp'||price.recurring?.interval!==interval||price.metadata.application!=='coverstead')throw Error('Unexpected existing price. No changes made to it.');
+  if(!price.active||price.recurring?.interval_count!==1||price.product!==product.id||!!price.livemode!==live||price.unit_amount!==amount||price.currency!=='gbp'||price.recurring?.interval!==interval||price.metadata.application!=='coverstead')throw Error('Unexpected existing price. No changes made to it.');
   fields['STRIPE_PRICE_'+plan]=price.id;
 }
 let portal=process.env.STRIPE_PORTAL_CONFIGURATION?await stripe.billingPortal.configurations.retrieve(process.env.STRIPE_PORTAL_CONFIGURATION):null;

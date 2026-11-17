@@ -4,7 +4,7 @@
 
 Coverstead is operated by Classicbikemerch Ltd. The owner confirmed on 16 November 2026 that the company is not VAT-registered. This integration adds no VAT and leaves automatic tax disabled. Review obligations with the company's accountant before changing countries served or tax settings; no tax registrations or account-wide tax settings were changed.
 
-Stripe is for Coverstead managed-service subscriptions, not venue guest deposits. The offer is one free calendar month, then £10 per venue per month or £100 per venue per year, paid upfront after the trial. The two intervals have the same Enterprise features. Community source remains free and MIT-licensed.
+Stripe is for Coverstead managed-service subscriptions, not venue guest deposits. The offer is one free calendar month, then £25 per venue per month or £250 per venue per year, paid upfront after the trial. The two intervals have the same Enterprise features. Community source remains free and MIT-licensed.
 
 Stripe's implementation planner selected hosted Checkout, flat-rate subscriptions, payment details collected for the trial, Customer Portal, and Stripe's standard recovery tooling.
 
