@@ -21,5 +21,5 @@ fi
 export ENV_FILE="$APPDIR/data/config.env"
 entrypoint=server.js
 if [ -f "$APPDIR/data/managed-enabled" ]; then entrypoint=managed-gateway.js; fi
-/usr/sbin/daemonize -c "$PROJECTDIR" -a -e "$APPDIR/logs/error.log" -o "$APPDIR/logs/console.log" -p "$PIDFILE" "$(command -v node)" "$entrypoint"
+/usr/sbin/daemonize -c "$PROJECTDIR" -a -e "$APPDIR/logs/error.log" -o "$APPDIR/logs/console.log" -p "$PIDFILE" "$(command -v node)" "$entrypoint" 9>&-
 echo "Started Coverstead."

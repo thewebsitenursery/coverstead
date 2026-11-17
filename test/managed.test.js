@@ -49,6 +49,7 @@ test('gateway isolates venue owners, rejects unknown hosts and restores data aft
  try{
   port=await start();await ready('coverstead.net');await ready('first-pub.coverstead.net');await ready('second-pub.coverstead.net');
   assert.equal((await call('unknown.coverstead.net','/api/platform')).status,421);
+  const canonical=await call('www.coverstead.net','/manual?from=www');assert.equal(canonical.status,308);assert.equal(canonical.headers.get('location'),'https://coverstead.net/manual?from=www');
   const token=JSON.parse(configs[0].match(/^SETUP_TOKEN=(.+)$/m)[1]);
   const owner=await call('first-pub.coverstead.net','/api/setup-owner','POST',{token,email:'owner@example.invalid',name:'Synthetic Owner',password:'synthetic-owner-passphrase'});assert.equal(owner.status,201);const cookie=owner.headers.get('set-cookie').split(';')[0];
   assert.equal((await call('first-pub.coverstead.net','/api/admin/me','GET',undefined,cookie)).status,200);

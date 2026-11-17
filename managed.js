@@ -8,7 +8,7 @@ export function managedRegistry(directory = process.env.MANAGED_ROOT) {
   const root = path.resolve(directory);
   function read() {
     const value = JSON.parse(fs.readFileSync(path.join(root, 'registry.json'), 'utf8'));
-    if (value.version !== 1 || !Array.isArray(value.venues) || value.venues.length > 20) throw Error('Invalid managed venue registry.');
+    if (value.version !== 1 || !Array.isArray(value.venues) || value.venues.length > 3) throw Error('Invalid managed venue registry (initial limit: three venues).');
     const hosts = new Set(), emails = new Set(), slugs = new Set();
     for (const venue of value.venues) {
       if (!slugPattern.test(venue.slug) || !['test', 'live'].includes(venue.mode) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(venue.email)) throw Error('Invalid managed venue.');

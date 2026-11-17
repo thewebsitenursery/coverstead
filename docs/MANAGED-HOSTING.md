@@ -1,6 +1,6 @@
 # Hosted Enterprise: assisted launch
 
-The first hosted service uses assisted setup, one venue per billing account, and a maximum of 20 configured venues per gateway. This is an operational limit, not a measured capacity claim. Each venue gets a separate process, database, assets, setup token, configuration and HTTPS hostname. All hosted files remain inside the dedicated Coverstead application. No arbitrary visitor-created subdomains or automatic paid provisioning are enabled.
+The first hosted service uses assisted setup, one venue per billing account, and a maximum of three configured venues per gateway. This conservative launch limit leaves room to measure memory on the existing shared hosting plan before expanding; it is not a measured capacity claim. Each venue gets a separate process, database, assets, setup token, configuration and HTTPS hostname. All hosted files remain inside the dedicated Coverstead application. No arbitrary visitor-created subdomains or automatic paid provisioning are enabled.
 
 The implementation is launch preparation. Live keys, hosting routes, delivery, off-server storage, service documents and account settings must be verified before live activation. Never fill a readiness record with assumed or synthetic evidence on the production system.
 

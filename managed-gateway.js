@@ -54,6 +54,9 @@ setInterval(()=>{
 const server=http.createServer((req,res)=>{
   const authority=req.headers.host||'';
   const hostname=authority.toLowerCase().replace(/:\d+$/,'');
+  if(host==='coverstead.net'&&hostname==='www.coverstead.net'){
+    res.writeHead(308,{Location:'https://coverstead.net'+(req.url?.startsWith('/')?req.url:'/')});res.end();return;
+  }
   const target=current.get(hostname);
   if(!target){res.writeHead(421,{'Content-Type':'text/plain'});res.end('Unknown Coverstead venue.');return;}
   if(!target.ready){res.writeHead(503,{'Retry-After':'5'});res.end('This venue is restarting. Please try again shortly.');return;}
