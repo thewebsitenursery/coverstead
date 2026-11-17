@@ -1,5 +1,7 @@
 # Coverstead 0.2.0-pilot.1 - implementation status
 
+**Current position, 17 November 2026:** the hosted gateway, rehearsal venue, live Stripe catalog and encrypted off-server recovery have been verified as described in the latest section below. Production billing remains in test mode and paid enrolment is closed pending confirmation of the hosting provider’s processing arrangements. Earlier dated sections record the progress and limitations at those stages.
+
 ## Product and price
 
 Coverstead: Full tables. Calmer service. Built from the locally recovered Red Lion reservation source. The free tool is positioned as Alistair giving something useful back to independent hospitality businesses.
@@ -99,3 +101,14 @@ The current suite has 65 passing tests. A versioned GitHub prerelease packages t
 The code now supports a bounded host gateway with separate venue workers/databases/configuration, supervised worker restarts, private readiness records, hourly consistent worker snapshots and encrypted off-server backup/health helpers. Live-mode support is explicitly gated, uses a separate billing database, and refuses Checkout until an invited venue is recorded ready and the customer accepts service terms. Signed mode-matched events and hourly reconciliation update service access; staff can still handle/export existing bookings when new bookings are blocked. Tests exercise host/session isolation, crash/restart persistence, backup restoration, readiness/terms gates and subscription state.
 
 This preparation does **not** mean managed enrolment is live. Live Stripe credentials and account settings, venue HTTPS routes, actual venue email receipt, off-server storage/restoration, alert delivery, retention and final company service/privacy documents remain unverified. Source helpers do not establish those external arrangements. See [MANAGED-HOSTING.md](MANAGED-HOSTING.md).
+
+
+## Hosted infrastructure verified — 17 November 2026
+
+The dedicated gateway is deployed with a conservative three-venue limit. A separate rehearsal hostname has a valid HTTPS certificate; owner authentication, settings, a synthetic booking, retry deduplication, diary access and product-session isolation passed. The owner confirmed receipt of both booking emails and the monitoring test in hello@coverstead.net. The monitor uses an explicit HTTP Host header for Node 20 compatibility; 72 tests passed on the host and CI.
+
+Live Stripe credentials now authenticate a GB account for CLASSICBIKEMERCH LTD with charges and payouts enabled. Coverstead-only live monthly/annual prices, a dedicated portal and a live webhook are prepared. Trial-end, renewal, failed-card and expiring-card reminders are saved, with a Coverstead subscription-management link and payment-authentication emails. No customer has been charged and production billing remains in test mode.
+
+An encrypted Restic repository is configured in a private Backblaze B2 EU Central bucket, with free-usage caps and alerts. Its first product and rehearsal snapshots were restored on the operator’s separate Mac and passed database/asset recovery checks. Hosted-launch terms, privacy and processing pages include the confirmed company identity. They remain marked as preparation documents: Opalstack’s processing agreement and its infrastructure backup/deletion arrangements have not been verified. The published provider terms describe 12-week infrastructure backup retention; the app’s shorter backup schedule must not be represented as covering those copies. A specific provider clarification request was sent to Opalstack support on 17 November 2026; no new terms or charges were accepted. Do not populate the global privacy launch evidence or open paid enrolment until the actual contractual arrangements are resolved.
+
+A subsequent restore of the encrypted backup onto the operator’s separate Mac recovered the synthetic service booking, accepted the saved owner password and supported a new booking and diary entry with all outgoing mail and payments disabled. The public rehearsal also retained its owner authentication and booking after the release restart. Daily encrypted backup scheduling and health-change alerts are configured through Coverstead-only jobs; the repository’s storage limits and the on-host monitor’s limitations still require operator attention.

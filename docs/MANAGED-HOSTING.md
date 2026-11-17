@@ -33,3 +33,10 @@ Workers restart after crashes with bounded backoff; repeated startup failures re
 Before opening a customer venue, restore the encrypted off-server copy on a different machine, run the isolated recovery helper, sign in, rehearse a booking/diary service with mail and payments disabled, and record evidence. Do not replay recovered email queues. Keep source/configuration version compatibility, reapply deletions and reconcile Stripe before resuming writes. A canceled customer needs an agreed export and deletion schedule; handle this deliberately and document completion.
 
 Official operational references: [Stripe live checklist](https://docs.stripe.com/get-started/checklist/go-live), [Opalstack routes](https://docs.opalstack.com/user-guide/sites/), [Restic repository setup](https://restic.readthedocs.io/en/stable/030_preparing_a_new_repo.html), [Restic verification](https://restic.readthedocs.io/en/stable/045_working_with_repos.html).
+
+
+## Provider terms and operational launch record
+
+The existing hosting provider’s processing agreement, sub-processors, transfer safeguards and infrastructure backup/deletion retention need explicit confirmation. Its public terms describe 12-week infrastructure backups. Do not claim the 35-day Coverstead repository policy removes those provider copies. Keep live Checkout gated until the contract and public notices match the actual arrangements. Backblaze’s DPA is incorporated into its terms; the selected repository uses EU Central storage.
+
+Schedule `scripts/managed-offsite-cron.sh` daily only after repository initialization and a verified restore. Keep the one-minute scoped monitor and preserve every unrelated cron entry. The restricted backup key expires in November 2027; rotate before expiry, and keep the repository encryption password on a separate protected device. A free-storage or transaction cap can stop backups, so retain storage alerts and monitor backup freshness. Review application logs and remove records older than 90 days; review closed customer records, exports and deletion completion monthly.
