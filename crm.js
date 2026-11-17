@@ -18,7 +18,10 @@ export function upsertCustomer(b,source,marketing=false,fillOnly=false){const e=
  if(marketing)setConsent(customerId,true,source,clean(b.consent_note,1000)||'Customer actively opted in to email offers and loyalty rewards.');return customerId;
 }
 // Backfill legacy bookings without assuming any marketing permission.
-transaction(()=>{for(const b of bookings()){if(b.walk_in)continue;if(!findCustomer(email(b.email),b.phone,b.name))upsertCustomer(b,'Existing booking',false,true);if(b.booking_type==='christmas'){const c=findCustomer(email(b.email),b.phone,b.name);if(c)run('UPDATE customers SET christmas_contact=1 WHERE id=?',[c.id]);}}});
+// A legacy reservation with no contact details cannot be matched safely to a
+// customer. Keep the reservation; do not create a fresh unmatched profile at
+// every startup or merge different people merely because their names match.
+transaction(()=>{for(const b of bookings()){if(b.walk_in||(!email(b.email)&&!phoneKey(b.phone)))continue;if(!findCustomer(email(b.email),b.phone,b.name))upsertCustomer(b,'Existing booking',false,true);if(b.booking_type==='christmas'){const c=findCustomer(email(b.email),b.phone,b.name);if(c)run('UPDATE customers SET christmas_contact=1 WHERE id=?',[c.id]);}}});
 export function shiftMonths(date,months){const d=new Date(date+'T12:00Z'),day=d.getUTCDate();d.setUTCDate(1);d.setUTCMonth(d.getUTCMonth()+months);const last=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,0)).getUTCDate();d.setUTCDate(Math.min(day,last));return d.toISOString().slice(0,10);}
 function profile(c,all=bookings()){
  const imported=query('SELECT * FROM customer_visits WHERE customer_id=? ORDER BY visit_date,visit_time',[c.id]).map(v=>({id:v.id,key:'import:'+v.id,date:v.visit_date,time:v.visit_time,name:c.name,booking_type:v.booking_type,reference:v.reference,status:'completed',source:v.source,notes:v.notes}));

@@ -8,7 +8,7 @@ import express from 'express';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import nodemailer from 'nodemailer';
+import {createMailSender} from './mail-delivery.js';
 import {bookingMessage} from './email.js';
 import {upsertCustomer,registerCrm} from './crm.js';
 import {validSignature,dnaConfigured,createPaymentLink} from './payments.js';
@@ -17,6 +17,7 @@ import {query,run,transaction,bookings} from './store.js';
 import {createBilling} from './billing.js';
 import {createWebsiteMetrics} from './website-metrics.js';
 import {registerMarketing} from './marketing.js';
+import {registerEnquiries} from './enquiries.js';
 const app=express(),dirname=path.dirname(fileURLToPath(import.meta.url));
 if(!process.env.PUBLIC_URL)throw Error('Set PUBLIC_URL to this installation URL');
 const publicOrigin=new URL(process.env.PUBLIC_URL).origin;
@@ -35,6 +36,7 @@ app.use('/api',(req,res,next)=>{res.set('Cache-Control','no-store');if(req.metho
 function throttle(req,res,next){const key=req.ip+':'+req.path;const now=Date.now();let x=limits.get(key);if(!x||x.end<now){x={n:0,end:now+15*60e3};limits.set(key,x);}if(++x.n>30)return res.status(429).json({error:'Too many attempts. Please try again in 15 minutes.'});next();}
 const clean=(x,max)=>typeof x==='string'?x.trim().slice(0,max):'';
 registerPlatform(app,throttle);
+registerEnquiries(app);
 billing.registerRoutes(app,throttle);
 app.get('/api/config',(req,res)=>res.json({...publicVenue(),tables,combinations,duration:venue.duration,kitchenLimit,christmasSeason,today:londonNow().slice(0,10),deposit:venue.groupDeposit/100,depositBasis:'booking',paymentsConfigured:false,emailReady:!demo&&!!process.env.SMTP_HOST&&process.env.EMAIL_DNS_READY==='true',demo}));
 app.use(['/api/availability','/api/bookings','/api/admin/bookings','/api/admin/walk-ins'],(req,res,next)=>{if(!venue.setupComplete)return res.status(503).json({error:'This venue is still completing setup.'});next();});
@@ -105,7 +107,7 @@ app.get('/api/admin/service-sheet',auth,(req,res)=>{const date=clean(req.query.d
 registerWalkins(app,auth);
 registerClosures(app,auth);
 registerCrm(app,auth,()=>void sendMail());
-let sending=false;async function sendMail(){if(demo||sending||!process.env.SMTP_HOST||process.env.EMAIL_DNS_READY!=='true')return;sending=true;try{const transport=nodemailer.createTransport({host:process.env.SMTP_HOST,port:Number(process.env.SMTP_PORT||587),secure:process.env.SMTP_PORT==='465',requireTLS:process.env.SMTP_PORT!=='465',auth:process.env.SMTP_USER?{user:process.env.SMTP_USER,pass:process.env.SMTP_PASSWORD_B64?Buffer.from(process.env.SMTP_PASSWORD_B64,'base64').toString():process.env.SMTP_PASSWORD}:undefined,connectionTimeout:15000,socketTimeout:20000});for(const m of query('SELECT * FROM outbox WHERE sent IS NULL AND attempts<20 ORDER BY rowid LIMIT 20')){if(m.category==='loyalty'&&!query('SELECT id FROM customers WHERE id=? AND marketing_email=1',[m.customer_id]).length){transaction(()=>run('DELETE FROM outbox WHERE id=?',[m.id]));continue;}try{await transport.sendMail({from:process.env.SMTP_FROM||`${venue.name} <${venue.email}>`,to:m.recipient,replyTo:venue.email,subject:m.subject,text:m.body,attachments:(m.attachments_json?JSON.parse(m.attachments_json):[]).filter(file=>/^[a-f0-9-]+\.(pdf|png|jpg|webp)$/.test(file)).map(file=>({filename:file,path:path.join(assets,file)})),messageId:`<${m.id}@${new URL(process.env.PUBLIC_URL).hostname}>`});transaction(()=>run('UPDATE outbox SET sent=?,error=NULL WHERE id=?',[new Date().toISOString(),m.id]));}catch{transaction(()=>run('UPDATE outbox SET attempts=attempts+1,error=? WHERE id=?',['Delivery failed; check SMTP configuration',m.id]));}}}finally{sending=false;}}
+const sendMail=createMailSender({query,run,transaction,venue,assets,demo});
 setInterval(()=>{const now=Date.now();for(const[k,v]of limits)if(v.end<now)limits.delete(k);void sendMail();},60000).unref();
 app.get('/admin/help',auth,(req,res)=>{res.set('Cache-Control','no-store');res.sendFile(path.join(dirname,'public/manual.html'));});
 app.use('/assets',express.static(assets,{dotfiles:'deny',setHeaders:res=>res.set('Content-Disposition','inline')}));

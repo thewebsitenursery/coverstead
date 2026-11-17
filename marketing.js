@@ -2,7 +2,7 @@ import path from 'node:path';
 
 export const marketingPages = ['/', '/demo', '/manual', '/install', '/get-started', '/managed', '/pub-booking-system', '/switching-from-paper'];
 export function registerMarketing(app, directory, origin) {
-  for (const page of ['/managed', '/pub-booking-system', '/switching-from-paper', '/website-data']) {
+  for (const page of ['/managed', '/pub-booking-system', '/switching-from-paper', '/website-data', '/enquire']) {
     app.get(page, (_req, res) => res.sendFile(path.join(directory, 'public', page.slice(1) + '.html')));
   }
   app.get('/robots.txt', (_req, res) => res.type('text/plain').send(

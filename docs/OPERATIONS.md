@@ -38,3 +38,15 @@ Start one process and check HTTPS, owner sign-in, the diary, availability, menus
 Use `npm run token` privately for initial owner setup. After an owner exists, the setup token cannot create another owner. To reset a password, stop the app and run `node scripts/reset-password.js` with its normal `ENV_FILE`, then restart. Sessions are held in memory and end on restart.
 
 `/api/platform` is a public health/status endpoint. `/api/admin/*` requires authentication. Before publishing the booking link, complete the venue setup, email rehearsal and backup recovery rehearsal. A queued email is not a delivered email. Avoid including tokens, passwords or guest details in support logs.
+
+## Read-only readiness review
+
+Run `node scripts/readiness.js` with the installation's normal `ENV_FILE`. It opens an in-memory copy of the saved database, prints configuration/integrity/onboarding/queue/backup checks without guest details or credentials, and returns exit code 1 when automated blockers remain. The public product installation can intentionally fail real-venue readiness: it is not a shared hosted venue. The diagnostic does not certify email receipt, login, recovery, legal readiness, support or live payments; complete the manual gates it lists.
+
+## Repeatable Coverstead product releases
+
+`scripts/opalstack-release.sh YYYYMMDD-NN` is deliberately limited to `$HOME/apps/coverstead`. It accepts no alternate app directory. Upload the reviewed Community ZIP to that app's `releases/YYYYMMDD-NN.zip` before running the script over the existing SSH connection. Do not run it for another application.
+
+The helper validates archive paths, duplicate entries, file types and size; refuses an existing release directory; uses the lockfile for dependencies; runs tests before stopping the app; takes a consistent backup; switches only the Coverstead symlink; and checks health/protected access before finishing. Source rollback is attempted on a post-stop failure. This does not automatically reverse database migrations: review compatibility before deployment and prepare a data rollback separately when schemas change. It never restores over new reservations automatically. Keep matching source, backup and deployment logs privately.
+
+The backup helper copies the venue database, assets and configuration, not the optional separate enquiry inbox. That inbox remains disabled until its operational handling is confirmed; see [ENQUIRIES.md](ENQUIRIES.md).

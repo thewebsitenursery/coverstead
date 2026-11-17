@@ -24,5 +24,5 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm test
       - run: npm run check
-      - run: bash -n scripts/opalstack-start.sh scripts/opalstack-stop.sh
+      - run: bash -n scripts/opalstack-start.sh scripts/opalstack-stop.sh scripts/opalstack-release.sh
       - run: npm run release
