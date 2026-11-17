@@ -1,9 +1,7 @@
 import nodemailer from 'nodemailer';
 import path from 'node:path';
-
-export function mailTransportConfigured(env=process.env) {
-  return env.MAIL_TRANSPORT==='sendmail' ? !!env.SMTP_FROM : !!env.SMTP_HOST;
-}
+import {createMailTransport,mailTransportConfigured} from './mail-transport.js';
+export {mailTransportConfigured} from './mail-transport.js';
 
 export function createMailSender({query,run,transaction,venue,assets,demo=false,env=process.env,transportFactory=options=>nodemailer.createTransport(options)}) {
   let sending=false;
@@ -13,17 +11,19 @@ export function createMailSender({query,run,transaction,venue,assets,demo=false,
     sending=true;let transport;
     try {
       const local=env.MAIL_TRANSPORT==='sendmail';
-      transport=transportFactory(local?{sendmail:true,path:'/usr/sbin/sendmail',newline:'unix'}:{host:env.SMTP_HOST,port:Number(env.SMTP_PORT||587),secure:env.SMTP_PORT==='465',requireTLS:env.SMTP_PORT!=='465',auth:env.SMTP_USER?{user:env.SMTP_USER,pass:env.SMTP_PASSWORD_B64?Buffer.from(env.SMTP_PASSWORD_B64,'base64').toString():env.SMTP_PASSWORD}:undefined,connectionTimeout:15000,socketTimeout:20000});
+      transport=createMailTransport(env,{transportFactory});
       for(const m of query('SELECT * FROM outbox WHERE sent IS NULL AND attempts<20 ORDER BY rowid LIMIT 20')) {
         if(m.category==='loyalty'&&!query('SELECT id FROM customers WHERE id=? AND marketing_email=1',[m.customer_id]).length){transaction(()=>run('DELETE FROM outbox WHERE id=?',[m.id]));result.skipped++;continue;}
         try {
           const response=await transport.sendMail({from:env.SMTP_FROM||`${venue.name} <${venue.email}>`,to:m.recipient,replyTo:venue.email,subject:m.subject,text:m.body,
-            attachments:(m.attachments_json?JSON.parse(m.attachments_json):[]).filter(file=>/^[a-f0-9-]+\.(pdf|png|jpg|webp)$/.test(file)).map(file=>({filename:file,path:path.join(assets,file)})),
+            // HTTPS delivery uses the menu links already present in the body.
+            // This also avoids provider-specific attachment type/size limits.
+            attachments:env.MAIL_TRANSPORT==='brevo'?[]:(m.attachments_json?JSON.parse(m.attachments_json):[]).filter(file=>/^[a-f0-9-]+\.(pdf|png|jpg|webp)$/.test(file)).map(file=>({filename:file,path:path.join(assets,file)})),
             messageId:`<${m.id}@${new URL(env.PUBLIC_URL).hostname}>`});
           // Nodemailer resolves sendmail only after a successful child exit.
           if(!local&&!response.accepted?.length)throw Error('SMTP did not accept a recipient.');
           transaction(()=>run('UPDATE outbox SET sent=?,error=NULL WHERE id=?',[new Date().toISOString(),m.id]));result.accepted++;
-        }catch{transaction(()=>run('UPDATE outbox SET attempts=attempts+1,error=? WHERE id=?',['Delivery failed; check SMTP configuration',m.id]));result.failed++;}
+        }catch{transaction(()=>run('UPDATE outbox SET attempts=attempts+1,error=? WHERE id=?',['Delivery failed; check mail configuration',m.id]));result.failed++;}
       }
     } finally {transport?.close?.();sending=false;}
     return result;

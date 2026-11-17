@@ -30,5 +30,5 @@ for(const args of [['backup','--quiet','--tag','coverstead-managed',...selected]
  const result=spawnSync(command,args,{env:process.env,stdio:['ignore','ignore','pipe'],timeout:600000});
  if(result.status!==0)throw Error('Off-server backup/check failed. Inspect the private storage configuration; no success marker was written.');
 }
-const status=path.join(directory,'offsite-status.json');fs.writeFileSync(status+'.tmp',JSON.stringify({verifiedAt:Date.now(),snapshotCount:backupRoots.length})+'\n',{mode:0o600});fs.renameSync(status+'.tmp',status);
+const status=process.env.OFFSITE_STATUS_FILE||path.join(directory,'offsite-status.json');fs.writeFileSync(status+'.tmp',JSON.stringify({verifiedAt:Date.now(),snapshotCount:backupRoots.length})+'\n',{mode:0o600});fs.renameSync(status+'.tmp',status);
 console.log('Encrypted off-server backup completed and repository sample checked. Perform a full restore rehearsal before first customer use.');

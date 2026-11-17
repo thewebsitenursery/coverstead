@@ -38,7 +38,8 @@ app.use('/api',(req,res,next)=>{res.set('Cache-Control','no-store');if(req.metho
 function throttle(req,res,next){const key=req.ip+':'+req.path;const now=Date.now();let x=limits.get(key);if(!x||x.end<now){x={n:0,end:now+15*60e3};limits.set(key,x);}if(++x.n>30)return res.status(429).json({error:'Too many attempts. Please try again in 15 minutes.'});next();}
 const clean=(x,max)=>typeof x==='string'?x.trim().slice(0,max):'';
 registerPlatform(app,throttle);
-registerEnquiries(app);
+registerEnquiries(app,{auth});
+app.get('/admin/enquiries',(_req,res)=>{res.set('Cache-Control','no-store');res.sendFile(path.join(dirname,'public/enquiry-inbox.html'));});
 billing.registerRoutes(app,throttle);
 app.get('/api/config',(req,res)=>res.json({...publicVenue(),tables,combinations,duration:venue.duration,kitchenLimit,christmasSeason,today:londonNow().slice(0,10),deposit:venue.groupDeposit/100,depositBasis:'booking',paymentsConfigured:false,emailReady:!demo&&mailTransportConfigured()&&process.env.EMAIL_DNS_READY==='true',demo}));
 app.use(['/api/availability','/api/bookings','/api/admin/bookings','/api/admin/walk-ins'],(req,res,next)=>{

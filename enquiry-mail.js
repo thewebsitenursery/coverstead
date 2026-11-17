@@ -1,12 +1,19 @@
 import nodemailer from 'nodemailer';
 import {spawn} from 'node:child_process';
 import {leadOptions} from './public/lead-options.js';
+import {createMailTransport} from './mail-transport.js';
 
 // Recipient and sender come only from private operator configuration. Never use
 // visitor input as a command argument or allow this form to send to visitors.
-export function createEnquiryDelivery(contact, {launch = spawn} = {}) {
+export function createEnquiryDelivery(contact, {launch = spawn,env=process.env,apiTransport} = {}) {
   const composer = nodemailer.createTransport({streamTransport:true,buffer:true,newline:'unix'});
   return async record => {
+    if(env.MAIL_TRANSPORT==='brevo'){
+      // Keep visitor-written content in the authenticated inbox. It can include
+      // sensitive information that the email provider must not process.
+      const url=new URL('/admin/enquiries',env.PUBLIC_URL);url.hash=record.id;
+      await (apiTransport||createMailTransport(env)).sendMail({from:env.SMTP_FROM||{name:'Coverstead enquiries',address:contact},to:contact,replyTo:record.email,messageId:`<enquiry-${record.id}@${url.hostname}>`,subject:`Coverstead enquiry ${record.id}`,text:`A private Coverstead enquiry has arrived.\n\nSign in to read and handle it:\n${url.href}\n\nThe visitor's message stays in the private inbox. No subscription or newsletter signup has been created.`});return;
+    }
     const context=Object.entries(leadOptions).map(([key,options])=>`${key.replaceAll('_',' ')}: ${options[record.context?.[key]]||'Not supplied'}`).join('\n');
     const message = await composer.sendMail({
       from:{name:'Coverstead enquiries',address:contact},to:contact,
