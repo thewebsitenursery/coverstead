@@ -144,4 +144,9 @@ An intentionally incorrect backup password failed safely, retained the previous 
 
 A read-only export of the current Coverstead installation was copied into an isolated cloud container with no network or published ports, mail disabled and live credentials excluded. Both databases' original rows survived startup; saved rehearsal-owner login, the existing booking, a new synthetic booking and host/session isolation passed. This is a migration rehearsal, not the final write-paused export.
 
-The original website, nameservers and mailbox route are unchanged; Red Lion and other applications were not modified. Final provider/mail privacy arrangements, owner-controlled backup-account MFA verification, coordinated public notices, the final single-writer cutover and live Stripe activation remain outstanding. See [PROVIDER-REVIEW.md](PROVIDER-REVIEW.md). Production enrolment is still closed.
+The original website, nameservers and mailbox route are unchanged; Red Lion and other applications were not modified. Final provider/mail privacy arrangements, coordinated public notices, the final single-writer cutover and live Stripe activation remain outstanding. See [PROVIDER-REVIEW.md](PROVIDER-REVIEW.md). Production enrolment is still closed.
+
+
+## Replacement email provider preparation
+
+The owner selected Scaleway TEM after actual Brevo mail exposed aggregate tracking that could not be disabled through the available controls. The fixed-region HTTPS adapter and all four email paths are prepared; 82 local tests pass. The owner is completing account creation, billing verification and MFA. No Scaleway credentials, DNS or active transport change has been made yet. Brevo continues serving the synthetic preview until replacement delivery is tested. The existing public website and closed billing gates remain unchanged.

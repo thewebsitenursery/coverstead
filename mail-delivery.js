@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 import path from 'node:path';
-import {createMailTransport,mailTransportConfigured} from './mail-transport.js';
+import {createMailTransport,mailTransportConfigured,httpsMailTransport} from './mail-transport.js';
 export {mailTransportConfigured} from './mail-transport.js';
 
 export function createMailSender({query,run,transaction,venue,assets,demo=false,env=process.env,transportFactory=options=>nodemailer.createTransport(options)}) {
@@ -18,7 +18,7 @@ export function createMailSender({query,run,transaction,venue,assets,demo=false,
           const response=await transport.sendMail({from:env.SMTP_FROM||`${venue.name} <${venue.email}>`,to:m.recipient,replyTo:venue.email,subject:m.subject,text:m.body,
             // HTTPS delivery uses the menu links already present in the body.
             // This also avoids provider-specific attachment type/size limits.
-            attachments:env.MAIL_TRANSPORT==='brevo'?[]:(m.attachments_json?JSON.parse(m.attachments_json):[]).filter(file=>/^[a-f0-9-]+\.(pdf|png|jpg|webp)$/.test(file)).map(file=>({filename:file,path:path.join(assets,file)})),
+            attachments:httpsMailTransport(env)?[]:(m.attachments_json?JSON.parse(m.attachments_json):[]).filter(file=>/^[a-f0-9-]+\.(pdf|png|jpg|webp)$/.test(file)).map(file=>({filename:file,path:path.join(assets,file)})),
             messageId:`<${m.id}@${new URL(env.PUBLIC_URL).hostname}>`});
           // Nodemailer resolves sendmail only after a successful child exit.
           if(!local&&!response.accepted?.length)throw Error('SMTP did not accept a recipient.');

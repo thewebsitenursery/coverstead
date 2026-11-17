@@ -1,14 +1,14 @@
 import nodemailer from 'nodemailer';
 import {spawn} from 'node:child_process';
 import {leadOptions} from './public/lead-options.js';
-import {createMailTransport} from './mail-transport.js';
+import {createMailTransport,httpsMailTransport} from './mail-transport.js';
 
 // Recipient and sender come only from private operator configuration. Never use
 // visitor input as a command argument or allow this form to send to visitors.
 export function createEnquiryDelivery(contact, {launch = spawn,env=process.env,apiTransport} = {}) {
   const composer = nodemailer.createTransport({streamTransport:true,buffer:true,newline:'unix'});
   return async record => {
-    if(env.MAIL_TRANSPORT==='brevo'){
+    if(httpsMailTransport(env)){
       // Keep visitor-written content in the authenticated inbox. It can include
       // sensitive information that the email provider must not process.
       const url=new URL('/admin/enquiries',env.PUBLIC_URL);url.hash=record.id;

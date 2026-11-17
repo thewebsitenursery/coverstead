@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import nodemailer from 'nodemailer';
 import {spawn} from 'node:child_process';
 import {query,run,transaction} from './store.js';
-import {createMailTransport} from './mail-transport.js';
+import {createMailTransport,mailTransportConfigured,httpsMailTransport} from './mail-transport.js';
 
 const digest=value=>crypto.createHash('sha256').update(value).digest('hex');
 const validEmail=value=>typeof value==='string'&&value.length<=254&&/^[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9-]+(?:\.[A-Z0-9-]+)+$/i.test(value)&&!/[\r\n]/.test(value);
@@ -11,7 +11,7 @@ export function billingIdentityMail(env=process.env,{launch=spawn,recipientAllow
  const live=env.STRIPE_MODE==='live';
  const sender=env.BILLING_EMAIL_FROM||'';
  const recipients=(env.BILLING_EMAIL_TEST_RECIPIENTS||'').split(',').map(x=>x.trim().toLowerCase()).filter(validEmail);
- if(env.BILLING_EMAIL_ENABLED!=='true'||!validEmail(sender)||(env.MAIL_TRANSPORT==='brevo'&&!env.BREVO_API_KEY)||(live?typeof recipientAllowed!=='function':!recipients.length))return null;
+ if(env.BILLING_EMAIL_ENABLED!=='true'||!validEmail(sender)||(httpsMailTransport(env)&&!mailTransportConfigured({...env,SMTP_FROM:sender}))||(live?typeof recipientAllowed!=='function':!recipients.length))return null;
  const permitted=email=>validEmail(email)&&(live?recipientAllowed(email):recipients.includes(email));
  const composer=nodemailer.createTransport({streamTransport:true,buffer:true,newline:'unix'});
  const deliver=async ({email,purpose,url})=>{
@@ -22,7 +22,7 @@ export function billingIdentityMail(env=process.env,{launch=spawn,recipientAllow
   const subject=live?labels[purpose].replace(' test',''):labels[purpose];
   const body=live?text.replaceAll('test-account','account').replaceAll('test account','account').replaceAll('test-account','account').replaceAll('test password','password').replace('No money is taken and no hosted venue is created.','Opening this link does not start a subscription or take payment.'):text;
   const details={from:{name:'Coverstead',address:sender},to:email,replyTo:'hello@coverstead.net',subject,text:body,messageId:'<identity-'+digest(email+'|'+purpose+'|'+(url||crypto.randomUUID()))+'@coverstead.net>'};
-  if(env.MAIL_TRANSPORT==='brevo'){await (apiTransport||createMailTransport(env)).sendMail(details);return;}
+  if(httpsMailTransport(env)){await (apiTransport||createMailTransport(env)).sendMail(details);return;}
   const mail=await composer.sendMail(details);
   await new Promise((resolve,reject)=>{
    const child=launch('/usr/sbin/sendmail',['-i','-f',sender,'--',email],{stdio:['pipe','ignore','ignore'],timeout:30000});
