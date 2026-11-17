@@ -26,7 +26,7 @@ export function createMailTransport(env=process.env,{transportFactory=options=>n
    if(!/^[a-f0-9-]+\.(pdf|png|jpg|webp)$/.test(item.filename)||!(await fs.lstat(item.path)).isFile())throw Error('Invalid mail attachment.');
    attachment.push({name:item.filename,content:(await fs.readFile(item.path)).toString('base64')});
   }
-  const payload={sender:address(message.from),to,subject:message.subject,textContent:message.text,...(message.replyTo?{replyTo:address(message.replyTo)}:{}),...(attachment.length?{attachment}:{}),headers:{idempotencyKey:crypto.createHash('sha256').update(message.messageId||crypto.randomUUID()).digest('hex')}};
+  const payload={sender:address(message.from),to,subject:message.subject,textContent:message.text,...(message.replyTo?{replyTo:address(message.replyTo)}:{}),...(attachment.length?{attachment}:{}),headers:{idempotencyKey:crypto.createHash('sha256').update(message.messageId||crypto.randomUUID()).digest('hex').slice(0,32)}};
   const body=JSON.stringify(payload);if(Buffer.byteLength(body)>10*1024*1024)throw Error('Email exceeds the delivery size limit.');
   let response,data;
   try{response=await fetchImpl('https://api.brevo.com/v3/smtp/email',{method:'POST',redirect:'error',headers:{'api-key':env.BREVO_API_KEY,'Content-Type':'application/json',Accept:'application/json'},body,signal:AbortSignal.timeout(20000)});data=await response.json();}catch{throw Error('Email API request failed.');}

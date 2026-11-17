@@ -17,6 +17,7 @@ test('HTTPS mail uses a fixed authenticated endpoint, keeps idempotency stable a
  const first=await transport.sendMail(message);await transport.sendMail(message);assert.deepEqual(first.accepted,['guest@example.invalid']);
  assert.equal(requests[0].url,'https://api.brevo.com/v3/smtp/email');assert.equal(requests[0].options.headers['api-key'],'synthetic-key');assert.equal(requests[0].options.redirect,'error');
  const payload=JSON.parse(requests[0].options.body);assert.equal(payload.to[0].contactPixelTrackingConsent,false);assert.equal(payload.replyTo.email,'venue@example.invalid');assert.equal(payload.sender.name,'Synthetic Inn');assert.equal(payload.headers.idempotencyKey,JSON.parse(requests[1].options.body).headers.idempotencyKey);
+ assert.match(payload.headers.idempotencyKey,/^[a-f0-9]{32}$/);
  await assert.rejects(transport.sendMail({...message,to:'guest@example.invalid\nBcc:other@example.invalid'}),/Invalid mail address/);
  await assert.rejects(transport.sendMail({...message,to:['a@example.invalid','b@example.invalid']}),/one recipient/);
  const staging=createMailTransport({...env,COVERSTEAD_STAGING:'true',MAIL_TEST_RECIPIENTS:'owner@example.invalid'},{fetchImpl:async()=>{throw Error('Must not contact provider');}});
