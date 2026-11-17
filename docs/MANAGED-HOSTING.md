@@ -4,6 +4,8 @@ The first hosted service uses assisted setup, one venue per billing account, and
 
 The implementation is launch preparation. Live keys, hosting routes, delivery, off-server storage, service documents and account settings must be verified before live activation. Never fill a readiness record with assumed or synthetic evidence on the production system.
 
+For the separate DigitalOcean migration rehearsal and its remaining checks, see [DIGITALOCEAN.md](DIGITALOCEAN.md). The managed container package does not change the active Opalstack deployment or lift any launch gate.
+
 ## Prepare a venue
 
 Run `node scripts/managed-venue.js create /private/managed/root venue-slug owner@example.com test` (use `live` only for a real invited customer). The helper writes private configuration and a registry entry, without creating a subscription or revealing its setup token. The email must be the account holder agreed with the venue. A repeated slug/email is refused.

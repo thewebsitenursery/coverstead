@@ -7,6 +7,7 @@ import {execFileSync} from 'node:child_process';
 // Explicit source allowlist: runtime data and local configuration never enter a release.
 const root=path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const files=['package.json','package-lock.json','LICENSE','CHANGELOG.md','README.md','CONTRIBUTING.md','SECURITY.md','coverstead-preview.jpg','.env.example','.gitignore','.dockerignore','Dockerfile','compose.yaml','compose.public.yaml','Caddyfile.example','server.js','marketing.js','website-metrics.js','enquiries.js','enquiry-mail.js','mail-delivery.js','env.js','platform.js','billing.js','billing-identity.js','billing-mode.js','managed.js','managed-gateway.js','managed-backup.js','store.js','venue.js','rules.js','dates.js','closures.js','walkins.js','crm.js','email.js','payments.js','service-sheet.js','staff-help.html'];
+files.push('Dockerfile.managed','compose.managed.yaml','Caddyfile.managed.example');
 const extensions={public:new Set(['.html','.css','.js','.svg','.woff','.woff2','.jpg']),scripts:new Set(['.js','.sh']),docs:new Set(['.md']),test:new Set(['.js'])};
 function collect(directory,allowed){
   for(const entry of fs.readdirSync(path.join(root,directory),{withFileTypes:true}).sort((a,b)=>a.name.localeCompare(b.name))){
