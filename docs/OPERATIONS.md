@@ -49,4 +49,9 @@ Run `node scripts/readiness.js` with the installation's normal `ENV_FILE`. It op
 
 The helper validates archive paths, duplicate entries, file types and size; refuses an existing release directory; uses the lockfile for dependencies; runs tests before stopping the app; takes a consistent backup; switches only the Coverstead symlink; and checks health/protected access before finishing. Source rollback is attempted on a post-stop failure. This does not automatically reverse database migrations: review compatibility before deployment and prepare a data rollback separately when schemas change. It never restores over new reservations automatically. Keep matching source, backup and deployment logs privately.
 
-The backup helper copies the venue database, assets and configuration, not the optional separate enquiry inbox. That inbox remains disabled until its operational handling is confirmed; see [ENQUIRIES.md](ENQUIRIES.md).
+The backup helper copies the venue database, assets and configuration, not the optional separate enquiry inbox. The product-site inbox has its own retention and email handling; see [ENQUIRIES.md](ENQUIRIES.md).
+
+
+## Rehearse a clean container installation
+
+Build a dedicated test image with `docker build -t coverstead-rehearsal .`, then run `node scripts/rehearse-container.js coverstead-rehearsal`. Node is needed on the host for this optional helper. It creates uniquely named containers and volumes, using only synthetic records and loopback ports; it verifies owner setup, a booking retry, restart persistence and a second isolated installation. All of its own containers, volumes and temporary configuration are removed afterwards. It does not prune other Docker resources or use existing venue volumes. Mail, Stripe and enquiry collection remain disabled throughout the rehearsal.

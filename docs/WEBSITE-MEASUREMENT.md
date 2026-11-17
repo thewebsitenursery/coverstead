@@ -11,3 +11,5 @@ These are resource requests, **not** unique visitors, completed demos, installat
 The website explains this feature at `/website-data`. The host's separate access/security logs are outside this counter's scope. No analytics cookies or browser tracking scripts are added.
 
 `/sitemap.xml` lists public discovery pages. `/robots.txt` points to it; billing, onboarding, booking and staff pages have an `X-Robots-Tag: noindex, nofollow` response header. Search discovery is not authentication: private APIs remain protected independently. Canonical and social metadata identify Coverstead's main product website. Search engine indexing and rankings are not guaranteed by a sitemap.
+
+The fixed resource list now also includes `/venue-fit`, `/developers` and `/enquire`. Guided demo completion remains browser-local and is not counted by the server. A visitor may voluntarily report demo completion and their source in an enquiry; those answers belong to the private enquiry record, not these aggregate counters, and are not independently verified.

@@ -58,12 +58,33 @@ If a network failure leaves a checkout attempt with an unknown result, retry the
 
 ## Remaining before live subscriptions
 
-This is test billing, not a completed managed SaaS operation. Email verification, billing password recovery, automatic venue provisioning, cross-installation service entitlement enforcement, off-server backup monitoring, uptime/restart monitoring and formal support operations remain unconnected. A new billing account does not get access to the home installation's owner onboarding. Each real venue still needs its own app/database/hostname and deliberate provisioning.
+This is test billing, not a completed managed SaaS operation. Automatic venue provisioning, cross-installation service entitlement enforcement, off-server backup monitoring, uptime/restart monitoring and formal support operations remain unconnected. A new billing account does not get access to the home installation's owner onboarding. Each real venue still needs its own app/database/hostname and deliberate provisioning.
 
-Before live enrolment: settle service/cancellation/privacy terms and the trial-to-service start policy, verify the legal business identity and public receipt/support details in Stripe, review VAT and customer jurisdictions, configure trial/renewal reminders and Revenue Recovery, implement verified billing identity and recovery, and rehearse live-mode readiness separately. The application deliberately rejects live keys until that work is complete. It does not assume that Stripe recovery email settings are enabled merely because the planner recommended them.
+Before live enrolment: settle service/cancellation/privacy terms and the trial-to-service start policy, verify the legal business identity and public receipt/support details in Stripe, review VAT and customer jurisdictions, configure trial/renewal reminders and Revenue Recovery, extend and rehearse the restricted test identity flow for live use, and rehearse live-mode readiness separately. The application deliberately rejects live keys until that work is complete. It does not assume that Stripe recovery email settings are enabled merely because the planner recommended them.
 
 Official references: [Hosted subscriptions](https://docs.stripe.com/billing/subscriptions/build-subscriptions?payment-ui=checkout&ui=stripe-hosted&platform=web), [trial offers and Checkout limitations](https://docs.stripe.com/billing/subscriptions/trials), [Customer Portal](https://docs.stripe.com/customer-management/integrate-customer-portal), [webhooks](https://docs.stripe.com/webhooks), [Stripe Tax setup](https://docs.stripe.com/tax/set-up).
 
 ## Verified on 16 November 2026
 
 43 automated tests and JavaScript syntax checks passed on the Mac and/or the deployed Node 20 environment; all 43 passed on Opalstack. The npm audit reported zero known vulnerabilities. Browser testing completed a real Stripe sandbox monthly Checkout, displayed the trial ending on 16 December 2026, opened the dedicated Customer Portal and scheduled cancellation. The explicit `cancel_at` field was confirmed and its display fixed. A separate synthetic annual subscription rehearsal verified real subscription creation/update/deletion webhook delivery over https://coverstead.net, authenticated portal creation and state updates without calling the refresh route. That test subscription was cancelled. No live payments, legal/tax account settings or unrelated applications were changed.
+
+
+## Verified billing identity and recovery — 17 November 2026
+
+Registration now sends a verification link instead of signing an unverified address in. The link lets its recipient choose the password; any password supplied during registration is ignored. Both verification and reset require confirmation of the new password and revoke all existing billing sessions and outstanding identity links. The user signs in explicitly afterwards. Legacy test accounts also need verification; no existing account is silently marked verified. Checkout and Customer Portal enforce email verification server-side, including for an old session.
+
+Links use 32 random bytes, are stored only as SHA-256 hashes, are purpose-bound and single-use. Verification expires after 60 minutes; recovery after 15. Tokens are in the URL fragment, removed from the visible URL on page load, and are submitted only when the user completes the form. Loading a link does not consume it. The page uses a no-referrer policy. Requests return generic acknowledgements and apply per-address cooldown/hourly limits, an overall daily mail-request ceiling, and the existing route/IP throttle. Expired tokens and request fingerprints are purged on startup and subsequent requests.
+
+Configure the product-site **test** transport privately:
+
+```text
+BILLING_EMAIL_ENABLED=true
+BILLING_EMAIL_FROM=<verified company sender>
+BILLING_EMAIL_TEST_RECIPIENTS=<comma-separated controlled test mailboxes>
+```
+
+The current implementation uses `/usr/sbin/sendmail` and creates new accounts/sends identity messages only for the configured test recipients. It does not turn on venue booking SMTP. Without this configuration, new test-account signup/recovery is unavailable. Replies remain generic for other addresses. No live key is accepted. A link-delivery failure leaves the existing password unchanged; the user can request another link after the cooldown. Identity mail is sent asynchronously, without a durable plaintext-token outbox; a crash before handoff requires a new link. The operator should monitor generic transport errors without logging links or passwords.
+
+Tests exercise verification before login/checkout, purpose separation, hash-only token storage, expiry, replay rejection, generic recovery, cooldown, password confirmation, old-password rejection, session revocation and cross-account isolation. Transport tests enforce the recipient allowlist and sendmail rejection handling. These tests use synthetic accounts and captured mail, not real recipients or Stripe payments.
+
+Design reference: [OWASP password recovery guidance](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html). The test recipient restriction, sendmail dependency, operational delivery monitoring, live service terms and broader managed-service readiness still need deliberate review before customer billing opens.

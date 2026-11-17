@@ -26,16 +26,23 @@ Use the installation's private `ENV_FILE` through its protected server account. 
 ```sh
 node scripts/enquiries.js summary
 node scripts/enquiries.js list
+node scripts/enquiries.js due
 node scripts/enquiries.js show ENQUIRY_UUID
 node scripts/enquiries.js status ENQUIRY_UUID contacted
+node scripts/enquiries.js status ENQUIRY_UUID qualified
+node scripts/enquiries.js follow-up ENQUIRY_UUID 2026-11-24
 node scripts/enquiries.js status ENQUIRY_UUID closed
 node scripts/enquiries.js retry-email ENQUIRY_UUID
 node scripts/enquiries.js delete ENQUIRY_UUID
 ```
 
-`summary` reports counts, oldest pending time and pending/failed alerts without visitor details. `list` shows references, dates, type and state. `show` reveals the private submission. An operator can queue a retry after fixing transport problems; the running app processes it on the next minute tick. Status changes record work, not proof of a sale or reply.
+`summary` reports stage counts, due follow-ups, oldest pending time and pending/failed alerts without visitor details. Stages are new, contacted, qualified, rehearsal, waiting and closed. Qualified means the operator has confirmed fit in a conversation, not that a customer has paid. New records receive a follow-up target two weekdays later; this is a planning target without a bank-holiday calendar. `due` lists open records whose target date has arrived. Set the next date after a reply, or use `follow-up ID clear` when no date applies. Closed records are excluded from due counts. `list` shows references, dates, type and state. `show` reveals the private submission. An operator can queue a retry after fixing transport problems; the running app processes it on the next minute tick. Status changes record work, not proof of a sale or reply.
 
 Alistair owns replies and privacy requests. Review enquiries each working day, aiming to reply within two working days. The daily Coverstead growth review checks counts and delivery failures and flags outstanding work; it does not automatically send replies. Mark handled records contacted/closed. Access/deletion requests require appropriate identity verification; knowing a submission reference alone is insufficient.
+
+## Optional qualification context
+
+The form optionally records venue type, existing booking method, timing, locations, essential requirement, source and self-reported demo completion. All values are fixed choices validated on the server. The fit check and demo carry only these choices into a visibly editable form; no guest names, notes or demo bookings are transmitted. The visitor can change or clear the values before submitting. A source or demo answer is a self-report, not attribution proof or an independently measured activation event. Context shares the same consent and 90-day retention as the enquiry.
 
 ## Retention and recovery
 

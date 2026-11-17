@@ -27,3 +27,9 @@ export function updateDemoBooking(bookings,id,status,notes){
  if(!allowed.includes(status))throw Error('Reset the demo to try a finished booking again.');
  return bookings.map(b=>b.id===id?{...b,status,notes:String(notes||'').slice(0,500)}:b);
 }
+
+export function demoProgress(bookings,lastBooking,staffViewed){
+ const booking=bookings.find(b=>b.id===lastBooking);
+ const steps=[!!booking,!!booking&&staffViewed,!!booking&&['seated','completed'].includes(booking.status)];
+ return {steps,complete:steps.every(Boolean)};
+}

@@ -21,7 +21,7 @@ Coverstead grew from the reservation app at The Red Lion in Kilsby. Alistair wan
 
 ## Pilot status
 
-Version **0.1.0** is an early pilot. Rehearse bookings, email delivery and backup recovery on your own installation before using it for a real service. Read the [product status](docs/PRODUCT-STATUS.md) for implemented features and limitations.
+Version **0.2.0-pilot.1** is an early pilot. Rehearse bookings, email delivery and backup recovery on your own installation before using it for a real service. Read the [product status](docs/PRODUCT-STATUS.md) for implemented features and limitations.
 
 The entire source, including the optional Enterprise administration modules, is [MIT-licensed](LICENSE). The planned managed service covers hosting, updates, backups and support: one free month, then £10 per venue per month or £100 per year. Coverstead is operated by Classicbikemerch Ltd.
 
@@ -81,6 +81,10 @@ The release helper requires the system `zip` command and builds `public/download
 | Optional subscription pilot | `billing.js`, `public/billing.js` |
 | Browser interface | `public/` — HTML, CSS and vanilla JavaScript |
 | Setup, backups and packaging | `scripts/` |
+
+## Working with a venue
+
+Start with the [guided demo](https://coverstead.net/demo), [venue-fit check](https://coverstead.net/venue-fit) and [developer pilot pack](docs/DEVELOPER-PILOT.md). Use the [private enquiry form](https://coverstead.net/enquire?source=github) for venue-specific questions. Do not post guest details or private contact information in GitHub issues.
 
 ## Documentation
 

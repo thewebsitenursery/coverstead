@@ -12,14 +12,14 @@ Coverstead is a working pilot for one venue per installation. These are areas wh
 
 ## Reliability before broader use
 
-- Repeatable Docker startup and isolated backup/restore rehearsals.
+- Extend the verified clean-container and isolated recovery rehearsals to more host environments.
 - SMTP delivery rehearsals and clearer mail failure visibility for staff.
 - Operator monitoring for backups, uptime, process crashes and restarts.
 - Explicit data retention and deletion workflows.
 
 ## Managed-service work
 
-Stripe Checkout and Customer Portal are currently test-only. Live enrolment needs verified billing identity, password recovery, service terms, deliberate venue provisioning, entitlement handling and operational support. Discuss these changes first: they cross authentication, payments and venue isolation boundaries.
+Stripe Checkout and Customer Portal are currently test-only. The verification/recovery flow now exists for restricted test mailboxes. Live enrolment still needs live identity delivery readiness, service terms, deliberate venue provisioning, entitlement handling and operational support. Discuss these changes first: they cross authentication, payments and venue isolation boundaries.
 
 ## Ideas to discuss
 

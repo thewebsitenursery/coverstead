@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const pages = new Map([
   ['/', 'home'], ['/demo', 'demo'], ['/manual', 'manual'], ['/install', 'install'],
-  ['/get-started', 'next_steps'], ['/managed', 'managed'],
+  ['/venue-fit', 'venue_fit'], ['/developers', 'developers'], ['/enquire', 'enquire'], ['/get-started', 'next_steps'], ['/managed', 'managed'],
   ['/pub-booking-system', 'pub_guide'], ['/switching-from-paper', 'switching_guide'],
   ['/downloads/coverstead-community.zip', 'source_download']
 ]);

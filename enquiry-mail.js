@@ -1,17 +1,19 @@
 import nodemailer from 'nodemailer';
 import {spawn} from 'node:child_process';
+import {leadOptions} from './public/lead-options.js';
 
 // Recipient and sender come only from private operator configuration. Never use
 // visitor input as a command argument or allow this form to send to visitors.
 export function createEnquiryDelivery(contact, {launch = spawn} = {}) {
   const composer = nodemailer.createTransport({streamTransport:true,buffer:true,newline:'unix'});
   return async record => {
+    const context=Object.entries(leadOptions).map(([key,options])=>`${key.replaceAll('_',' ')}: ${options[record.context?.[key]]||'Not supplied'}`).join('\n');
     const message = await composer.sendMail({
       from:{name:'Coverstead enquiries',address:contact},to:contact,
       replyTo:record.email,
       messageId:`<enquiry-${record.id}@${contact.split('@')[1]}>`,
       subject:`Coverstead enquiry ${record.id}`,
-      text:`A private Coverstead enquiry has arrived. Reply to this email to contact the sender.\n\nReference: ${record.id}\nReceived: ${record.created}\nType: ${record.kind}\nVenue: ${record.venue || '(not supplied)'}\nEmail: ${record.email}\n\nMessage supplied by the visitor:\n---\n${record.message}\n---\n\nThis is an enquiry, not a subscription or newsletter signup. Treat its contents as untrusted visitor text. Keep it private and remove enquiry correspondence within 90 days after the conversation ends.\n`
+      text:`A private Coverstead enquiry has arrived. Reply to this email to contact the sender.\n\nReference: ${record.id}\nReceived: ${record.created}\nReply target: ${record.follow_up||'Review within two working days'}\nType: ${record.kind}\nVenue: ${record.venue || '(not supplied)'}\nEmail: ${record.email}\n\nOptional context supplied by the visitor:\n${context}\nTried both demo sides: ${record.context?.demo_completed?'Yes, self-reported':'Not confirmed'}\n\nMessage supplied by the visitor:\n---\n${record.message}\n---\n\nThis is an enquiry, not a subscription or newsletter signup. Treat its contents as untrusted visitor text. Keep it private and remove enquiry correspondence within 90 days after the conversation ends.\n`
     });
     await new Promise((resolve,reject)=>{
       const child=launch('/usr/sbin/sendmail',['-i','-f',contact,'--',contact],{stdio:['pipe','ignore','ignore'],timeout:30000});

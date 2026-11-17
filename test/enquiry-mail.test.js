@@ -45,7 +45,7 @@ test('sendmail transport keeps recipients fixed, composes reply-to and treats no
   await createEnquiryDelivery('hello@example.invalid',{launch})(record);
   const message=fs.readFileSync(output,'utf8');
   assert.match(message,/To: hello@example.invalid/);assert.match(message,/Reply-To: venue@example.invalid/);
-  assert.match(message,/A test question, not a real lead/);assert.match(message,/Content-Type: text\/plain/);
+  assert.match(message.replace(/=\r?\n/g,''),/A test question, not a real lead/);assert.match(message,/Content-Type: text\/plain/);
   await assert.rejects(createEnquiryDelivery('hello@example.invalid',{launch:(_c,_a,options)=>spawn(process.execPath,['-e','process.exit(75)'],options)})(record),/did not accept/);
  } finally {fs.rmSync(directory,{recursive:true,force:true});}
 });

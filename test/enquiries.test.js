@@ -14,7 +14,7 @@ test('enquiries require explicit readiness and preserve private records through 
  try{
   assert.equal(enquirySettings({ENQUIRIES_ENABLED:'true'}).enabled,false);
   const input=sample();inbox.accept(input);inbox.accept(input);
-  assert.equal(inbox.summary().total,1);assert.equal(inbox.read(input.id).notice_version,'2026-11-17.1');
+  assert.equal(inbox.summary().total,1);assert.equal(inbox.read(input.id).notice_version,'2026-11-17.2');
   assert.equal(fs.statSync(path.join(directory,input.id+'.json')).mode&0o077,0);
   assert.throws(()=>inbox.accept({...input,message:'different'}),/already been used/);
   assert.throws(()=>inbox.accept({...sample(),contact_permission:false}),/Confirm/);
@@ -39,5 +39,23 @@ test('private enquiry API is closed by default, rate-limited when enabled and ha
   for(let n=0;n<4;n++)assert.equal((await request(enabled,'/api/enquiries',{method:'POST',body:input})).status,202);
   assert.equal((await request(enabled,'/api/enquiries',{method:'POST',body:input})).status,429);
   assert.equal(createEnquiryInbox(directory).summary().total,1);
+ }finally{fs.rmSync(directory,{recursive:true,force:true});}
+});
+
+test('optional qualification stays bounded, retries agree and follow-up dates survive stage changes',async()=>{
+ const {enquiryReplyDue}=await import('../enquiries.js');
+ assert.equal(enquiryReplyDue(new Date('2026-11-20T12:00Z')),'2026-11-24');
+ const directory=fs.mkdtempSync(path.join(os.tmpdir(),'coverstead-follow-up-'));let date=new Date('2026-11-20T12:00Z');const inbox=createEnquiryInbox(directory,()=>date);
+ try{
+  const input={...sample(),context:{venue_type:'pub',booking_method:'paper',timing:'soon',source:'demo',demo_completed:true}};inbox.accept(input);inbox.accept(input);
+  assert.equal(inbox.read(input.id).context.demo_completed,true);assert.equal(inbox.summary().followUpsDue,0);
+  assert.throws(()=>inbox.accept({...input,context:{...input.context,source:'github'}}),/already been used/);
+  assert.throws(()=>inbox.accept({...sample(),context:{source:'arbitrary tracking value'}}),/valid source/);
+  assert.throws(()=>inbox.accept({...sample(),context:{email:'unwanted@example.invalid'}}),/optional venue context/);
+  inbox.setStatus(input.id,'qualified');inbox.setFollowUp(input.id,'2026-11-23');date=new Date('2026-11-23T12:00Z');
+  assert.equal(inbox.summary().qualified,1);assert.equal(inbox.summary().followUpsDue,1);
+  assert.throws(()=>inbox.setFollowUp(input.id,'2026-02-31'),/valid/);
+  inbox.setStatus(input.id,'closed');assert.equal(inbox.summary().followUpsDue,0);
+  date=new Date('2027-03-01T12:00Z');assert.equal(inbox.summary().total,0);
  }finally{fs.rmSync(directory,{recursive:true,force:true});}
 });
