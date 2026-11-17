@@ -18,11 +18,13 @@ import {createBilling} from './billing.js';
 import {createWebsiteMetrics} from './website-metrics.js';
 import {registerMarketing} from './marketing.js';
 import {registerEnquiries} from './enquiries.js';
+import {serviceAccess} from './managed.js';
+import {snapshotManaged} from './managed-backup.js';
 const app=express(),dirname=path.dirname(fileURLToPath(import.meta.url));
 if(!process.env.PUBLIC_URL)throw Error('Set PUBLIC_URL to this installation URL');
 const publicOrigin=new URL(process.env.PUBLIC_URL).origin;
 const limits=new Map();
-app.disable('x-powered-by');app.set('trust proxy','loopback');
+app.disable('x-powered-by');app.set('trust proxy',process.env.INSTANCE_SOCKET?true:'loopback');
 const websiteMetrics=createWebsiteMetrics({enabled:process.env.WEBSITE_METRICS_ENABLED==='true',file:path.join(path.dirname(path.resolve(process.env.DB_PATH||'data/coverstead.sqlite')),'website-counts.json')});
 app.use(websiteMetrics.middleware);
 process.on('exit',()=>websiteMetrics.close());
@@ -39,6 +41,10 @@ registerPlatform(app,throttle);
 registerEnquiries(app);
 billing.registerRoutes(app,throttle);
 app.get('/api/config',(req,res)=>res.json({...publicVenue(),tables,combinations,duration:venue.duration,kitchenLimit,christmasSeason,today:londonNow().slice(0,10),deposit:venue.groupDeposit/100,depositBasis:'booking',paymentsConfigured:false,emailReady:!demo&&!!process.env.SMTP_HOST&&process.env.EMAIL_DNS_READY==='true',demo}));
+app.use(['/api/availability','/api/bookings','/api/admin/bookings','/api/admin/walk-ins'],(req,res,next)=>{
+ if((req.method==='POST'||req.originalUrl.split('?')[0]==='/api/availability')&&!serviceAccess(process.env.MANAGED_ENTITLEMENT).allowed)return res.status(503).json({error:'New reservations are temporarily unavailable. Please contact the venue directly.'});
+ next();
+});
 app.use(['/api/availability','/api/bookings','/api/admin/bookings','/api/admin/walk-ins'],(req,res,next)=>{if(!venue.setupComplete)return res.status(503).json({error:'This venue is still completing setup.'});next();});
 app.get('/api/availability',(req,res)=>{const date=clean(req.query.date,10),size=Number(req.query.size),type=req.query.type||'standard';if(!['standard','christmas'].includes(type))return res.status(400).json({error:'Choose a valid booking type.'});const horizon=new Date(londonNow().slice(0,10)+'T12:00Z');horizon.setUTCDate(horizon.getUTCDate()+venue.advanceDays);if(date>horizon.toISOString().slice(0,10))return res.json({slots:[]});res.json({soldOut:false,slots:bookingSlots(date,type,londonNow(new Date(Date.now()+Math.max(venue.leadMinutes*60000,needsPreorder({size,booking_type:type})?venue.preorderHours*3600e3:0)))).map(s=>({...s,available:!serviceClosed(date,s.service)&&available(date,s.time,size,bookings(),venue.duration).length>0}))});});
 function queue(b,kind=b.status==='pending_deposit'?'pending_deposit':'confirmed'){
@@ -47,6 +53,7 @@ function queue(b,kind=b.status==='pending_deposit'?'pending_deposit':'confirmed'
  for(const recipient of [b.email,...(b.staff_created?[]:[venue.email])].filter(Boolean))run('INSERT INTO outbox(id,booking_id,recipient,subject,body,attachments_json) VALUES(?,?,?,?,?,?)',[crypto.randomUUID(),b.id,recipient,message.subject,message.body+(recipient===venue.email?message.staffNote:''),JSON.stringify(message.attachments)]);
 }
 function createBooking(req,res){
+ if(!serviceAccess(process.env.MANAGED_ENTITLEMENT).allowed)return res.status(503).json({error:'Online reservations are temporarily unavailable. Please contact the venue directly.'});
  const staff=req.staff===true,duration=venue.duration;
  const requestId=String(req.body.request_id||'');
  if(requestId&&!/^[a-f0-9-]{36}$/.test(requestId))return res.status(400).json({error:'Invalid booking request ID.'});
@@ -120,7 +127,16 @@ app.get('/get-started',(req,res)=>res.sendFile(path.join(dirname,'public/get-sta
 app.get('/book',(req,res)=>res.sendFile(path.join(dirname,'public/book.html')));
 app.get('/onboarding',(req,res)=>res.sendFile(path.join(dirname,'public/onboarding.html')));
 app.get('/enterprise',(req,res)=>res.sendFile(path.join(dirname,'public/enterprise.html')));
+if(process.env.MANAGED_ENTITLEMENT)app.get('/',(_req,res)=>res.redirect('/book'));
 app.use(express.static(path.join(dirname,'public'),{index:'index.html',setHeaders:(res,file)=>{if(/\.(html|js|css)$/.test(file))res.set('Cache-Control','no-cache, max-age=0, must-revalidate');}}));app.get('/admin',(req,res)=>res.sendFile(path.join(dirname,'public/admin.html')));
 app.use((err,req,res,next)=>{console.error(err.status?err.message:'Request failed');res.status(err.status||500).json({error:err.status?err.message:'Unable to complete the request. Please try again or contact the venue.'});});
 export {app};
-if(process.env.NO_LISTEN!=='true')app.listen(Number(process.env.PORT||3100),process.env.HOST||'127.0.0.1',()=>{console.log('Coverstead: '+process.env.PUBLIC_URL);void sendMail();});
+if(process.env.NO_LISTEN!=='true'){
+ if(process.env.INSTANCE_SOCKET)process.on('disconnect',()=>process.exit(0));
+ if(process.env.INSTANCE_SOCKET)process.on('message',message=>{
+  if(message?.operation==='snapshot')try{process.send?.({snapshot:snapshotManaged()});}catch{process.send?.({snapshotError:true});}
+ });
+ const started=()=>{console.log('Coverstead: '+process.env.PUBLIC_URL);process.send?.({ready:true});void sendMail();};
+ if(process.env.INSTANCE_SOCKET)app.listen(process.env.INSTANCE_SOCKET,started);
+ else app.listen(Number(process.env.PORT||3100),process.env.HOST||'127.0.0.1',started);
+}

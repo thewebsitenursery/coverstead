@@ -92,3 +92,10 @@ A clean Docker build and synthetic two-installation rehearsal verified non-root 
 Billing email verification and password recovery are implemented for explicitly allowed test mailboxes. Single-use expiring links, hashed tokens, explicit password choice and session revocation are tested. Unverified accounts cannot log in, use Checkout or access Customer Portal. Live payment keys remain rejected; managed venue provisioning and customer enrolment remain closed. See [STRIPE.md](STRIPE.md).
 
 The current suite has 65 passing tests. A versioned GitHub prerelease packages the source and pilot documentation. Marketing preparation and synthetic rehearsals are not evidence of new venues, paying customers or revenue.
+
+
+## Assisted hosted-launch preparation — 17 November 2026
+
+The code now supports a bounded host gateway with separate venue workers/databases/configuration, supervised worker restarts, private readiness records, hourly consistent worker snapshots and encrypted off-server backup/health helpers. Live-mode support is explicitly gated, uses a separate billing database, and refuses Checkout until an invited venue is recorded ready and the customer accepts service terms. Signed mode-matched events and hourly reconciliation update service access; staff can still handle/export existing bookings when new bookings are blocked. Tests exercise host/session isolation, crash/restart persistence, backup restoration, readiness/terms gates and subscription state.
+
+This preparation does **not** mean managed enrolment is live. Live Stripe credentials and account settings, venue HTTPS routes, actual venue email receipt, off-server storage/restoration, alert delivery, retention and final company service/privacy documents remain unverified. Source helpers do not establish those external arrangements. See [MANAGED-HOSTING.md](MANAGED-HOSTING.md).

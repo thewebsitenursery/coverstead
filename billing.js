@@ -1,7 +1,9 @@
 import crypto from 'node:crypto';
 import express from 'express';
 import Stripe from 'stripe';
-import {createBillingIdentity} from './billing-identity.js';
+import {createBillingIdentity,billingIdentityMail} from './billing-identity.js';
+import {stripeMode} from './billing-mode.js';
+import {managedRegistry} from './managed.js';
 import {query,run,transaction} from './store.js';
 
 export const STRIPE_API_VERSION='2026-10-28.endive';
@@ -23,11 +25,12 @@ export function oneMonthFrom(seconds){
 }
 
 export function billingConfig(env=process.env){
-  return {enabled:env.STRIPE_BILLING_ENABLED==='true',key:env.STRIPE_SECRET_KEY||'',webhookSecret:env.STRIPE_WEBHOOK_SECRET||'',monthly:env.STRIPE_PRICE_MONTHLY||'',annual:env.STRIPE_PRICE_ANNUAL||'',portal:env.STRIPE_PORTAL_CONFIGURATION||'',origin:env.PUBLIC_URL?new URL(env.PUBLIC_URL).origin:'',secure:env.COOKIE_SECURE!=='false'};
+  return {mode:env.STRIPE_MODE||'test',liveReady:env.STRIPE_LIVE_READY==='true',launchFile:env.MANAGED_LAUNCH_FILE||'',managedRoot:env.MANAGED_ROOT||'',termsVersion:env.SERVICE_TERMS_VERSION||'2026-11-17',enabled:env.STRIPE_BILLING_ENABLED==='true',key:env.STRIPE_SECRET_KEY||'',webhookSecret:env.STRIPE_WEBHOOK_SECRET||'',monthly:env.STRIPE_PRICE_MONTHLY||'',annual:env.STRIPE_PRICE_ANNUAL||'',portal:env.STRIPE_PORTAL_CONFIGURATION||'',origin:env.PUBLIC_URL?new URL(env.PUBLIC_URL).origin:'',secure:env.COOKIE_SECURE!=='false'};
 }
 
 export function createBilling({config=billingConfig(),client,sendIdentityEmail,identityNow}={}){
-  if(config.key&&!/^(sk|rk)_test_/.test(config.key))throw Error('This Coverstead billing pilot accepts Stripe test keys only.');
+  const mode=stripeMode(config),live=mode==='live',managed=managedRegistry(config.managedRoot);
+  if(live)managed.read();
   const stripe=client||(config.key?new Stripe(config.key,{apiVersion:STRIPE_API_VERSION,maxNetworkRetries:2,timeout:15000}):null);
   const ready=()=>!!(config.enabled&&stripe&&config.webhookSecret&&config.monthly&&config.annual&&config.portal&&config.origin);
   const locks=new Map();
@@ -44,8 +47,12 @@ export function createBilling({config=billingConfig(),client,sendIdentityEmail,i
     CREATE TABLE IF NOT EXISTS billing_sessions(token_hash TEXT PRIMARY KEY,account_id TEXT NOT NULL,expires INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS stripe_events(id TEXT PRIMARY KEY,type TEXT NOT NULL,processed TEXT NOT NULL);`));
   if(!query('PRAGMA table_info(billing_accounts)').some(column=>column.name==='cancel_at'))transaction(()=>run('ALTER TABLE billing_accounts ADD COLUMN cancel_at INTEGER'));
-  const identity=createBillingIdentity({origin:config.origin,send:sendIdentityEmail,passwordHash,now:identityNow});
-  const safeAccount=a=>({id:a.id,email:a.email,emailVerified:!!a.email_verified_at,name:a.name,venueName:a.venue_name,status:a.status,plan:a.price_id===config.monthly?'monthly':a.price_id===config.annual?'annual':null,trialEnd:a.trial_end,periodEnd:a.current_period_end,cancelAt:a.cancel_at,cancelAtPeriodEnd:!!a.cancel_at_period_end,trialUsed:!!a.trial_used,serviceProvisioned:false});
+  transaction(()=>run('CREATE TABLE IF NOT EXISTS billing_environment(mode TEXT NOT NULL); CREATE TABLE IF NOT EXISTS billing_acceptances(id TEXT PRIMARY KEY,account_id TEXT NOT NULL,version TEXT NOT NULL,plan TEXT NOT NULL,accepted TEXT NOT NULL);'));
+  let savedMode=query('SELECT mode FROM billing_environment')[0]?.mode;
+  if(!savedMode){savedMode=query('SELECT id FROM billing_accounts LIMIT 1').length?'test':mode;transaction(()=>run('INSERT INTO billing_environment VALUES(?)',[savedMode]));}
+  if(savedMode!==mode&&(config.enabled||config.key))throw Error('Use a separate billing database for live mode; never mix test and live accounts.');
+  const identity=createBillingIdentity({origin:config.origin,send:sendIdentityEmail===undefined?billingIdentityMail({...process.env,STRIPE_MODE:mode},{recipientAllowed:live?email=>!!managed.find(email,mode):undefined}):sendIdentityEmail,passwordHash,now:identityNow});
+  const safeAccount=a=>({id:a.id,email:a.email,emailVerified:!!a.email_verified_at,name:a.name,venueName:a.venue_name,status:a.status,plan:a.price_id===config.monthly?'monthly':a.price_id===config.annual?'annual':null,trialEnd:a.trial_end,periodEnd:a.current_period_end,cancelAt:a.cancel_at,cancelAtPeriodEnd:!!a.cancel_at_period_end,trialUsed:!!a.trial_used,serviceProvisioned:!!managed?.status(a.email,mode).ready,venueUrl:managed?.status(a.email,mode).url||null});
   function cookieToken(req){return (req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith('cs_billing='))?.slice(11)||'';}
   function session(res,a){
     const token=crypto.randomBytes(32).toString('hex');
@@ -64,13 +71,14 @@ export function createBilling({config=billingConfig(),client,sendIdentityEmail,i
     res.status(502).json({error:'Billing is temporarily unavailable. Please try again. Your reservation data is unaffected.'});
   }};
   function saveSubscription(a,subscription){
-    if(subscription.livemode||idOf(subscription.customer)!==a.stripe_customer_id||subscription.metadata?.coverstead_account!==a.id)return false;
+    if(!!subscription.livemode!==live||idOf(subscription.customer)!==a.stripe_customer_id||subscription.metadata?.coverstead_account!==a.id)return false;
     const items=subscription.items?.data||[];
     if(items.length!==1||items[0].quantity!==1||![config.monthly,config.annual].includes(idOf(items[0].price)))return false;
     if(a.subscription_id&&a.subscription_id!==subscription.id&&!terminal.has(a.status))return false;
     transaction(()=>run('UPDATE billing_accounts SET subscription_id=?,status=?,price_id=?,trial_end=?,current_period_end=?,cancel_at_period_end=?,cancel_at=?,trial_used=1 WHERE id=?',[
       subscription.id,subscription.status,idOf(items[0].price),subscription.trial_end||null,items[0].current_period_end||null,Number(!!subscription.cancel_at_period_end),subscription.cancel_at||null,a.id
     ]));
+    managed?.entitlement(a.email,mode,subscription);
     return true;
   }
   async function reconcile(a,subscriptionId=a.subscription_id){
@@ -79,8 +87,10 @@ export function createBilling({config=billingConfig(),client,sendIdentityEmail,i
     if(!saveSubscription(a,subscription))throw fail('This subscription does not match this Coverstead account.',409);
     return account(a.id);
   }
-  async function checkout(a,plan){
-    if(!a.email_verified_at)throw fail('Verify your email before starting test checkout.',403);
+  async function checkout(a,plan,acceptedTerms){
+    if(!a.email_verified_at)throw fail('Verify your email before starting checkout.',403);
+    if(live&&!managed.status(a.email,mode).ready)throw fail('Your hosted venue must be ready before you start your subscription. Contact hello@coverstead.net.',409);
+    if(live&&acceptedTerms!==true)throw fail('Please accept the service terms and recurring subscription before continuing.');
     const priceId=plan==='monthly'?config.monthly:config.annual;
     a=await reconcile(a);
     if(a.subscription_id&&!terminal.has(a.status))throw fail('You already have a subscription. Use Manage billing to update or cancel it.',409);
@@ -102,11 +112,12 @@ export function createBilling({config=billingConfig(),client,sendIdentityEmail,i
     }
     // Refuse accidental use of another company's catalog or client-supplied amounts.
     const price=await stripe.prices.retrieve(priceId);
-    if(price.livemode||!price.active||price.currency!=='gbp'||price.unit_amount!==(plan==='monthly'?1000:10000)||price.recurring?.interval!==(plan==='monthly'?'month':'year')||price.recurring?.interval_count!==1||price.metadata?.application!=='coverstead')throw fail('The Coverstead test price needs administrator review.',503);
+    if(!!price.livemode!==live||!price.active||price.currency!=='gbp'||price.unit_amount!==(plan==='monthly'?1000:10000)||price.recurring?.interval!==(plan==='monthly'?'month':'year')||price.recurring?.interval_count!==1||price.metadata?.application!=='coverstead')throw fail('The Coverstead price needs administrator review.',503);
     if(!a.checkout_attempt){
       const now=Math.floor(Date.now()/1000);
       transaction(()=>run('UPDATE billing_accounts SET checkout_attempt=?,checkout_plan=?,checkout_trial_end=?,checkout_expires_at=? WHERE id=?',[crypto.randomUUID(),plan,a.trial_used?null:oneMonthFrom(now),now+3600,a.id]));a=account(a.id);
     }
+    if(live)transaction(()=>run('INSERT INTO billing_acceptances VALUES(?,?,?,?,?)',[crypto.randomUUID(),a.id,config.termsVersion,plan,new Date().toISOString()]));
     const subscriptionData={billing_mode:{type:'flexible'},metadata:{application:'coverstead',coverstead_account:a.id},trial_settings:{end_behavior:{missing_payment_method:'cancel'}}};
     if(a.checkout_trial_end)subscriptionData.trial_end=a.checkout_trial_end;
     const result=await stripe.checkout.sessions.create({mode:'subscription',customer:a.stripe_customer_id,client_reference_id:a.id,
@@ -120,10 +131,10 @@ export function createBilling({config=billingConfig(),client,sendIdentityEmail,i
   }
   function registerWebhook(app){
     app.post('/api/stripe/webhook',express.raw({type:'application/json',limit:'1mb'}),async(req,res)=>{
-      if(!ready())return res.status(503).json({error:'Stripe test billing is not configured.'});
+      if(!ready())return res.status(503).json({error:'Stripe billing is not configured.'});
       let event;
       try{event=stripe.webhooks.constructEvent(req.body,req.get('stripe-signature'),config.webhookSecret);}catch{return res.status(400).json({error:'Invalid Stripe signature.'});}
-      if(event.livemode!==false)return res.status(400).json({error:'Only test events are accepted.'});
+      if(event.livemode!==live)return res.status(400).json({error:'This event does not match the configured Stripe mode.'});
       try{
         await exclusive('event:'+event.id,async()=>{
           if(query('SELECT id FROM stripe_events WHERE id=?',[event.id]).length)return;
@@ -148,12 +159,12 @@ export function createBilling({config=billingConfig(),client,sendIdentityEmail,i
       res.set('Cache-Control','no-store');
       if(req.method!=='GET'&&req.get('origin')!==config.origin)return res.status(403).json({error:'Please submit from this website.'});
       if(req.path==='/config')return next();
-      if(!ready())return res.status(503).json({error:'Stripe test billing is not configured yet.'});next();
+      if(!ready())return res.status(503).json({error:'Stripe billing is not configured yet.'});next();
     });
-    app.get('/api/billing/config',(_req,res)=>res.json({enabled:ready(),identityEmailReady:identity.ready,identityTestOnly:true,testMode:true,company:'Classicbikemerch Ltd',vatRegistered:false,monthly:1000,annual:10000,currency:'GBP'}));
+    app.get('/api/billing/config',(_req,res)=>res.json({enabled:ready(),identityEmailReady:identity.ready,identityTestOnly:!live,testMode:!live,assistedEnrolment:live,termsVersion:config.termsVersion||'2026-11-17',company:'Classicbikemerch Ltd',vatRegistered:false,monthly:1000,annual:10000,currency:'GBP'}));
     const acknowledgement={ok:true,message:'If this address can receive a link, it will arrive shortly. Check your inbox or request another link after a minute.'};
     app.post('/api/billing/register',throttle,route(async(req,res)=>{
-      if(!identity.ready)throw fail('Test account email is not configured yet.',503);
+      if(!identity.ready)throw fail('Account email is not configured yet.',503);
       const email=clean(req.body.email,254).toLowerCase(),name=clean(req.body.name,100),venueName=clean(req.body.venueName,100);
       if(!name||!venueName||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw fail('Enter your name, venue and email.');
       const pendingPassword=passwordHash(crypto.randomBytes(32).toString('hex'));
@@ -163,7 +174,7 @@ export function createBilling({config=billingConfig(),client,sendIdentityEmail,i
       identity.issue(email,'verify');res.status(202).json(acknowledgement);
     }));
     for(const [endpoint,purpose] of [['request-verification','verify'],['request-reset','reset']])app.post('/api/billing/'+endpoint,throttle,route(async(req,res)=>{
-      if(!identity.ready)throw fail('Test account email is not configured yet.',503);
+      if(!identity.ready)throw fail('Account email is not configured yet.',503);
       const email=clean(req.body.email,254).toLowerCase();
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw fail('Enter a valid email address.');
       identity.issue(email,purpose);res.status(202).json(acknowledgement);
@@ -189,13 +200,22 @@ export function createBilling({config=billingConfig(),client,sendIdentityEmail,i
     }));
     app.post('/api/billing/checkout',auth,throttle,route(async(req,res)=>{
       if(!['monthly','annual'].includes(req.body.plan))throw fail('Choose monthly or annual billing.');
-      res.json(await exclusive(req.billingAccount.id,()=>checkout(account(req.billingAccount.id),req.body.plan)));
+      res.json(await exclusive(req.billingAccount.id,()=>checkout(account(req.billingAccount.id),req.body.plan,req.body.acceptTerms)));
     }));
     app.post('/api/billing/portal',auth,throttle,route(async(req,res)=>{
-      const a=req.billingAccount;if(!a.email_verified_at)throw fail('Verify your email before managing billing.',403);if(!a.stripe_customer_id||!a.subscription_id)throw fail('Complete your test checkout first.',409);
+      const a=req.billingAccount;if(!a.email_verified_at)throw fail('Verify your email before managing billing.',403);if(!a.stripe_customer_id||!a.subscription_id)throw fail('Complete your checkout first.',409);
       const result=await stripe.billingPortal.sessions.create({customer:a.stripe_customer_id,configuration:config.portal,return_url:config.origin+'/billing?portal=return'});
       res.json({url:result.url});
     }));
   }
-  return {registerWebhook,registerRoutes};
+  let reconciliationRunning=false;
+  async function reconcileAll(){
+    if(!ready()||reconciliationRunning)return;reconciliationRunning=true;
+    try{for(const row of query('SELECT * FROM billing_accounts WHERE subscription_id IS NOT NULL')){
+      try{await exclusive(row.id,()=>reconcile(account(row.id)));}catch{console.error('Managed billing reconciliation failed; inspect the subscription privately.');}
+    }}finally{reconciliationRunning=false;}
+  }
+  let timer,initialReconciliation;
+  if(managed&&ready()){timer=setInterval(()=>void reconcileAll(),3600e3);timer.unref();initialReconciliation=setImmediate(()=>void reconcileAll());}
+  return {registerWebhook,registerRoutes,reconcileAll,close(){clearInterval(timer);clearImmediate(initialReconciliation);}};
 }

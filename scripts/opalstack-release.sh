@@ -10,6 +10,9 @@ set +eu
 source scl_source enable nodejs20
 set -euo pipefail
 app="$HOME/apps/coverstead"
+mkdir -p "$app/tmp"
+exec 9>"$app/tmp/maintenance.lock"
+flock -n 9 || { echo 'Coverstead maintenance is already running.' >&2; exit 1; }
 test -d "$app/data"
 test -f "$app/start"
 test -f "$app/stop"
@@ -66,11 +69,11 @@ switched=1
 "$app/start"
 healthy=0
 for attempt in {1..30}; do
-  if curl -fsS -H 'X-Coverstead-Check: 1' "http://127.0.0.1:$port/api/platform" > /dev/null; then healthy=1; break; fi
+  if curl -fsS -H 'Host: coverstead.net' -H 'X-Coverstead-Check: 1' "http://127.0.0.1:$port/api/platform" > /dev/null; then healthy=1; break; fi
   sleep 0.5
 done
 test "$healthy" = 1
-test "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port/api/admin/bookings")" = 401
-curl -fsS -H 'X-Coverstead-Check: 1' "http://127.0.0.1:$port/manual" | grep 'Full user manual' > /dev/null
+test "$(curl -s -H 'Host: coverstead.net' -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port/api/admin/bookings")" = 401
+curl -fsS -H 'Host: coverstead.net' -H 'X-Coverstead-Check: 1' "http://127.0.0.1:$port/manual" | grep 'Full user manual' > /dev/null
 trap - ERR
 echo "Coverstead release $release_id is healthy; previous source and backup retained."

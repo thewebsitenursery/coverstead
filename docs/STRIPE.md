@@ -88,3 +88,8 @@ The current implementation uses `/usr/sbin/sendmail` and creates new accounts/se
 Tests exercise verification before login/checkout, purpose separation, hash-only token storage, expiry, replay rejection, generic recovery, cooldown, password confirmation, old-password rejection, session revocation and cross-account isolation. Transport tests enforce the recipient allowlist and sendmail rejection handling. These tests use synthetic accounts and captured mail, not real recipients or Stripe payments.
 
 Design reference: [OWASP password recovery guidance](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html). The test recipient restriction, sendmail dependency, operational delivery monitoring, live service terms and broader managed-service readiness still need deliberate review before customer billing opens.
+
+
+## Explicit live-mode preparation
+
+The earlier test-only boundary is now extended by an explicit live mode, defaulting off. See [MANAGED-HOSTING.md](MANAGED-HOSTING.md) for assisted enrolment, private launch evidence, invitation/readiness checks, separate billing data, terms acceptance, service access and reconciliation. `scripts/stripe-setup.js --live` requires a live key and checks account charges/payouts status. This support has been exercised with a fake Stripe transport; no real charges or live catalog objects have been created during this preparation. The production site remains test-only until the missing credentials and operational evidence are supplied.

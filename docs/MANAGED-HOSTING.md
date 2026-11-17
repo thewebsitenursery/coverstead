@@ -1,0 +1,35 @@
+# Hosted Enterprise: assisted launch
+
+The first hosted service uses assisted setup, one venue per billing account, and a maximum of 20 configured venues per gateway. This is an operational limit, not a measured capacity claim. Each venue gets a separate process, database, assets, setup token, configuration and HTTPS hostname. All hosted files remain inside the dedicated Coverstead application. No arbitrary visitor-created subdomains or automatic paid provisioning are enabled.
+
+The implementation is launch preparation. Live keys, hosting routes, delivery, off-server storage, service documents and account settings must be verified before live activation. Never fill a readiness record with assumed or synthetic evidence on the production system.
+
+## Prepare a venue
+
+Run `node scripts/managed-venue.js create /private/managed/root venue-slug owner@example.com test` (use `live` only for a real invited customer). The helper writes private configuration and a registry entry, without creating a subscription or revealing its setup token. The email must be the account holder agreed with the venue. A repeated slug/email is refused.
+
+Configure its `venue-slug.coverstead.net` HTTPS route to the existing Coverstead application, and configure/test its outgoing mail. The private gateway routes only known hosts to private Unix sockets; unknown hosts return 421. Run `managed-gateway.js` instead of `server.js` only after gateway verification. On the dedicated Opalstack deployment, the start helper uses the gateway when the private `data/managed-enabled` marker exists. The new stop helper validates its process before stopping the supervisor and workers.
+
+Complete owner onboarding, tables/service rules and a synthetic service. Give the owner their setup token through an agreed private channel. Never share billing credentials or another venue's configuration. Record actual evidence strings in the registry's `checks` fields: `https`, `ownerLogin`, `sampleService`, `emailReceipt`, `offsiteBackup`, `restore`, `support`, `terms`. See outstanding checks with `node scripts/managed-venue.js list /private/managed/root`.
+
+The account holder verifies their invited billing email, chooses their own password, accepts the published service terms and selects monthly or annual billing. Live Checkout is refused until every readiness check is recorded. The free calendar month begins on their first Checkout preparation after readiness, not when the initial enquiry is submitted. Do not invite a customer to checkout before the service and their installation are usable.
+
+## Payment modes and service access
+
+Default mode is `STRIPE_MODE=test`. Live mode additionally requires `STRIPE_LIVE_READY=true`, a live key, `MANAGED_ROOT`, `MANAGED_LAUNCH_FILE` and HTTPS. The launch file contains actual evidence for `company`, `terms`, `privacy`, `mail`, `backups`, `recovery`, `monitoring`, `support`, `stripeAccount`, `trialReminders`. A mode marker in the database prevents mixing live and test billing accounts. Use a fresh product database for live billing, retaining the test database privately; do not clear or overwrite it. Venue databases never hold Stripe keys.
+
+The catalog helper accepts `--live` only with a live key, checks charges/payouts enabled and creates/reuses only Coverstead-tagged objects. It leaves unrelated catalog objects and default/account-wide settings alone. Verify the returned account identity and its public receipt/support settings before activation. Verify trial/renewal reminders and recovery settings in Stripe; the helper does not claim those are enabled.
+
+The amount stays £10/month or £100/year per venue after one calendar month free, without VAT added while the company is not VAT-registered. Signed, mode-matched Stripe events update a private entitlement file. Current subscription state is fetched instead of trusting event order. An hourly reconciliation refreshes all mapped subscriptions. Trialing and active subscriptions allow new bookings. Past-due subscriptions receive seven days from first observed failure; canceled, unpaid, paused and incomplete subscriptions cannot create bookings. Existing staff sign-in, diary, changes and exports remain available for operational follow-up. Entitlements older than 48 hours block new bookings and need investigation. This is not an automatic data-deletion system.
+
+## Monitoring, backup and recovery
+
+Workers restart after crashes with bounded backoff; repeated startup failures require intervention. Their supervisor writes `data/sockets/status.json` every minute and asks each worker for a consistent snapshot hourly. The snapshot runs synchronously within that worker, includes its database/config/assets and a completion manifest, and excludes private enquiries. Only complete snapshots should be copied off-server. Snapshot folders contain credentials and personal data: private access and encrypted off-server storage are required.
+
+`ENV_FILE=/private/operator-backup.env node scripts/managed-offsite.js` uses Restic with `RESTIC_REPOSITORY`, `RESTIC_PASSWORD_FILE`, optional `RESTIC_BINARY`, `BACKUP_DIR` and `MANAGED_ROOT`. Supply storage credentials privately for the chosen backend. Initialise a dedicated repository with Restic before the first run. Keep the encryption password on a separate protected device as well as the server. The helper backs up the newest complete snapshots, registry and matching source archive, then checks a 10% repository data sample before writing its success marker. It does not prove restoration or guarantee storage-provider availability. Configure documented retention before customer use; neither local snapshots nor repository snapshots are automatically pruned by this helper.
+
+`node scripts/managed-health.js` reports unavailable workers, stale snapshots and off-server verification older than 26 hours. `scripts/managed-monitor.sh` can be scheduled for the dedicated Coverstead installation. Its maintenance lock prevents interference with the release helper. Preserve unrelated cron entries. A working alert channel and an operator who responds are still needed; saving a health file alone is not monitoring coverage.
+
+Before opening a customer venue, restore the encrypted off-server copy on a different machine, run the isolated recovery helper, sign in, rehearse a booking/diary service with mail and payments disabled, and record evidence. Do not replay recovered email queues. Keep source/configuration version compatibility, reapply deletions and reconcile Stripe before resuming writes. A canceled customer needs an agreed export and deletion schedule; handle this deliberately and document completion.
+
+Official operational references: [Stripe live checklist](https://docs.stripe.com/get-started/checklist/go-live), [Opalstack routes](https://docs.opalstack.com/user-guide/sites/), [Restic repository setup](https://restic.readthedocs.io/en/stable/030_preparing_a_new_repo.html), [Restic verification](https://restic.readthedocs.io/en/stable/045_working_with_repos.html).
