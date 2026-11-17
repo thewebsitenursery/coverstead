@@ -20,6 +20,7 @@ export function createMailTransport(env=process.env,{transportFactory=options=>n
  return {async sendMail(message){
   const to=(Array.isArray(message.to)?message.to:[message.to]).map(value=>({...address(value),contactPixelTrackingConsent:false}));
   if(to.length!==1)throw Error('Send each private message to one recipient.');
+  if(env.COVERSTEAD_STAGING==='true'&&!(env.MAIL_TEST_RECIPIENTS||'').split(',').map(x=>x.trim().toLowerCase()).includes(to[0].email.toLowerCase()))throw Error('Staging email recipient is not allowed.');
   const attachment=[];
   for(const item of message.attachments||[]){
    if(!/^[a-f0-9-]+\.(pdf|png|jpg|webp)$/.test(item.filename)||!(await fs.lstat(item.path)).isFile())throw Error('Invalid mail attachment.');

@@ -43,10 +43,10 @@ case "${1:-}" in
   }
   trap cleanup_backup EXIT
   timeout --signal=TERM --kill-after=30s 900s docker run --rm --init --name coverstead-offsite-job \
-   --user 0 --read-only --cap-drop ALL --security-opt no-new-privileges \
+   --user 1000:1000 --read-only --cap-drop ALL --security-opt no-new-privileges \
    --memory 1g --pids-limit 128 --tmpfs /tmp:rw,noexec,nosuid,size=128m \
    --mount "type=bind,src=$base/data,dst=/var/lib/coverstead" \
-   --mount "type=bind,src=$base/operations,dst=/run/coverstead-operations,readonly" \
+   --mount "type=bind,src=$base/operations/backup-input,dst=/run/coverstead-operations,readonly" \
    -e ENV_FILE=/run/coverstead-operations/backup.env \
    -e RESTIC_CACHE_DIR=/tmp/restic-cache \
    "$image" node scripts/managed-offsite.js

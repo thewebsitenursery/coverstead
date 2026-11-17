@@ -19,6 +19,8 @@ test('HTTPS mail uses a fixed authenticated endpoint, keeps idempotency stable a
  const payload=JSON.parse(requests[0].options.body);assert.equal(payload.to[0].contactPixelTrackingConsent,false);assert.equal(payload.replyTo.email,'venue@example.invalid');assert.equal(payload.sender.name,'Synthetic Inn');assert.equal(payload.headers.idempotencyKey,JSON.parse(requests[1].options.body).headers.idempotencyKey);
  await assert.rejects(transport.sendMail({...message,to:'guest@example.invalid\nBcc:other@example.invalid'}),/Invalid mail address/);
  await assert.rejects(transport.sendMail({...message,to:['a@example.invalid','b@example.invalid']}),/one recipient/);
+ const staging=createMailTransport({...env,COVERSTEAD_STAGING:'true',MAIL_TEST_RECIPIENTS:'owner@example.invalid'},{fetchImpl:async()=>{throw Error('Must not contact provider');}});
+ await assert.rejects(staging.sendMail(message),/Staging email recipient is not allowed/);
  const rejected=createMailTransport(env,{fetchImpl:async()=>({status:429,json:async()=>({message:'private provider content'})})});await assert.rejects(rejected.sendMail(message),error=>error.message==='Email API did not accept the message.');
  const malformed=createMailTransport(env,{fetchImpl:async()=>({status:201,json:async()=>({})})});await assert.rejects(malformed.sendMail(message),/did not accept/);
 });
