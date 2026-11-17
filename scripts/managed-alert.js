@@ -1,12 +1,13 @@
 import '../env.js';
 import fs from 'node:fs';
 import path from 'node:path';
+import http from 'node:http';
 import {spawnSync} from 'node:child_process';
 import nodemailer from 'nodemailer';
 const directory=path.dirname(path.resolve(process.env.ENV_FILE||'data/config.env'));
 const check=spawnSync(process.execPath,['scripts/managed-health.js'],{env:process.env,encoding:'utf8',timeout:15000});
 let report;try{report=JSON.parse(check.stdout);}catch{report={status:'attention',issues:['Health diagnostic failed.']};}
-try{const response=await fetch('http://127.0.0.1:'+Number(process.env.PORT)+'/api/platform',{headers:{Host:'coverstead.net','X-Coverstead-Check':'1'},signal:AbortSignal.timeout(5000)});if(!response.ok)throw Error();}catch{report.status='attention';report.issues.push('Coverstead public worker is not responding.');}
+try{await new Promise((resolve,reject)=>{const request=http.get({hostname:'127.0.0.1',port:Number(process.env.PORT),path:'/api/platform',headers:{Host:'coverstead.net','X-Coverstead-Check':'1'}},response=>{response.resume();response.statusCode===200?resolve():reject(Error());});request.setTimeout(5000,()=>request.destroy(Error('Health request timed out')));request.on('error',reject);});}catch{report.status='attention';report.issues.push('Coverstead public worker is not responding.');}
 console.log(JSON.stringify(report));
 const enabled=process.env.MANAGED_ALERTS_ENABLED==='true';
 const stateFile=path.join(directory,'monitor-alert.json');let previous;try{previous=JSON.parse(fs.readFileSync(stateFile,'utf8'));}catch{}
