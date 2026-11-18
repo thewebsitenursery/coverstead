@@ -25,7 +25,7 @@ export function oneMonthFrom(seconds){
 }
 
 export function billingConfig(env=process.env){
-  return {mode:env.STRIPE_MODE||'test',liveReady:env.STRIPE_LIVE_READY==='true',launchFile:env.MANAGED_LAUNCH_FILE||'',managedRoot:env.MANAGED_ROOT||'',termsVersion:env.SERVICE_TERMS_VERSION||'2026-11-17',enabled:env.STRIPE_BILLING_ENABLED==='true',key:env.STRIPE_SECRET_KEY||'',webhookSecret:env.STRIPE_WEBHOOK_SECRET||'',monthly:env.STRIPE_PRICE_MONTHLY||'',annual:env.STRIPE_PRICE_ANNUAL||'',portal:env.STRIPE_PORTAL_CONFIGURATION||'',origin:env.PUBLIC_URL?new URL(env.PUBLIC_URL).origin:'',secure:env.COOKIE_SECURE!=='false'};
+  return {mode:env.STRIPE_MODE||'test',liveReady:env.STRIPE_LIVE_READY==='true',launchFile:env.MANAGED_LAUNCH_FILE||'',managedRoot:env.MANAGED_ROOT||'',termsVersion:env.SERVICE_TERMS_VERSION||'2026-11-18',enabled:env.STRIPE_BILLING_ENABLED==='true',key:env.STRIPE_SECRET_KEY||'',webhookSecret:env.STRIPE_WEBHOOK_SECRET||'',monthly:env.STRIPE_PRICE_MONTHLY||'',annual:env.STRIPE_PRICE_ANNUAL||'',portal:env.STRIPE_PORTAL_CONFIGURATION||'',origin:env.PUBLIC_URL?new URL(env.PUBLIC_URL).origin:'',secure:env.COOKIE_SECURE!=='false'};
 }
 
 export function createBilling({config=billingConfig(),client,sendIdentityEmail,identityNow}={}){
@@ -162,7 +162,7 @@ export function createBilling({config=billingConfig(),client,sendIdentityEmail,i
       if(req.path==='/config')return next();
       if(!ready())return res.status(503).json({error:'Stripe billing is not configured yet.'});next();
     });
-    app.get('/api/billing/config',(_req,res)=>res.json({enabled:ready(),identityEmailReady:identity.ready,identityTestOnly:!live,testMode:!live,assistedEnrolment:live,termsVersion:config.termsVersion||'2026-11-17',company:'Classicbikemerch Ltd',vatRegistered:false,monthly:2500,annual:25000,currency:'GBP'}));
+    app.get('/api/billing/config',(_req,res)=>res.json({enabled:ready(),identityEmailReady:identity.ready,identityTestOnly:!live,testMode:!live,assistedEnrolment:live,termsVersion:config.termsVersion||'2026-11-18',company:'Classicbikemerch Ltd',vatRegistered:false,monthly:2500,annual:25000,currency:'GBP'}));
     const acknowledgement={ok:true,message:'If this address can receive a link, it will arrive shortly. Check your inbox or request another link after a minute.'};
     app.post('/api/billing/register',throttle,route(async(req,res)=>{
       if(!identity.ready)throw fail('Account email is not configured yet.',503);

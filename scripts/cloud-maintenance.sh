@@ -55,7 +55,7 @@ case "${1:-}" in
    exit "$result"
   }
   trap cleanup_backup EXIT
-  timeout --signal=TERM --kill-after=30s 900s docker run --rm --init --name coverstead-offsite-job \
+  timeout --signal=TERM --kill-after=30s 900s docker run --rm --init --name coverstead-offsite-job --hostname coverstead-offsite \
    --user 1000:1000 --read-only --cap-drop ALL --security-opt no-new-privileges \
    --memory 1g --pids-limit 128 --tmpfs /tmp:rw,noexec,nosuid,size=128m \
    --mount "type=bind,src=$base/data,dst=/var/lib/coverstead" \

@@ -5,7 +5,7 @@ import {leadOptions} from './public/lead-options.js';
 
 const idPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const emailPattern = /^[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9-]+(?:\.[A-Z0-9-]+)+$/i;
-export const enquiryNoticeVersion = '2026-11-17.2';
+export const enquiryNoticeVersion = '2026-11-18.1';
 const fail = (message, status = 400) => Object.assign(Error(message), {status});
 const statuses=['new','contacted','qualified','rehearsal','waiting','closed'];
 export function enquiryContext(input={}) {
