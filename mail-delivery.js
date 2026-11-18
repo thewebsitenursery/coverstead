@@ -15,7 +15,11 @@ export function createMailSender({query,run,transaction,venue,assets,demo=false,
       for(const m of query('SELECT * FROM outbox WHERE sent IS NULL AND attempts<20 ORDER BY rowid LIMIT 20')) {
         if(m.category==='loyalty'&&!query('SELECT id FROM customers WHERE id=? AND marketing_email=1',[m.customer_id]).length){transaction(()=>run('DELETE FROM outbox WHERE id=?',[m.id]));result.skipped++;continue;}
         try {
-          const response=await transport.sendMail({from:env.SMTP_FROM||`${venue.name} <${venue.email}>`,to:m.recipient,replyTo:venue.email,subject:m.subject,text:m.body,
+          const reply=m.reply_to||venue.email;
+          // Older queued staff copies have no reply destination. Avoid a
+          // redundant self-reply header; customer replies still reach the venue.
+          const replyTo=reply?.toLowerCase()===m.recipient.toLowerCase()?undefined:reply;
+          const response=await transport.sendMail({from:env.SMTP_FROM||`${venue.name} <${venue.email}>`,to:m.recipient,replyTo,subject:m.subject,text:m.body,
             // HTTPS delivery uses the menu links already present in the body.
             // This also avoids provider-specific attachment type/size limits.
             attachments:httpsMailTransport(env)?[]:(m.attachments_json?JSON.parse(m.attachments_json):[]).filter(file=>/^[a-f0-9-]+\.(pdf|png|jpg|webp)$/.test(file)).map(file=>({filename:file,path:path.join(assets,file)})),

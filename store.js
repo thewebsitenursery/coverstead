@@ -26,6 +26,7 @@ if(!query('PRAGMA table_info(bookings)').some(c=>c.name==='deposit_amount')){
  run("UPDATE bookings SET deposit_amount=2500 WHERE size>=10");
 }
 if(!query('PRAGMA table_info(outbox)').some(c=>c.name==='attachments_json'))run("ALTER TABLE outbox ADD COLUMN attachments_json TEXT");
+if(!query('PRAGMA table_info(outbox)').some(c=>c.name==='reply_to'))run("ALTER TABLE outbox ADD COLUMN reply_to TEXT");
 if(!query('PRAGMA table_info(bookings)').some(c=>c.name==='seating_mode'))run("ALTER TABLE bookings ADD COLUMN seating_mode TEXT NOT NULL DEFAULT 'joined'");
 run(`CREATE TABLE IF NOT EXISTS customers(id TEXT PRIMARY KEY,email TEXT UNIQUE,name TEXT,phone TEXT,notes TEXT DEFAULT '',marketing_email INTEGER DEFAULT 0,consent_updated TEXT,consent_source TEXT,unsubscribe_token TEXT UNIQUE,created TEXT,updated TEXT);
 CREATE TABLE IF NOT EXISTS consent_events(id TEXT PRIMARY KEY,customer_id TEXT,allowed INTEGER,source TEXT,note TEXT,created TEXT);

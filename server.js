@@ -51,7 +51,9 @@ app.get('/api/availability',(req,res)=>{const date=clean(req.query.date,10),size
 function queue(b,kind=b.status==='pending_deposit'?'pending_deposit':'confirmed'){
  if(b.walk_in)return;
  const message=bookingMessage(b,kind,process.env.PUBLIC_URL,venue.phone);
- for(const recipient of [b.email,...(b.staff_created?[]:[venue.email])].filter(Boolean))run('INSERT INTO outbox(id,booking_id,recipient,subject,body,attachments_json) VALUES(?,?,?,?,?,?)',[crypto.randomUUID(),b.id,recipient,message.subject,message.body+(recipient===venue.email?message.staffNote:''),JSON.stringify(message.attachments)]);
+ // Save the reply destination with the queued message, so retries do not
+ // accidentally use a guest address changed after this notification was made.
+ for(const recipient of [b.email,...(b.staff_created?[]:[venue.email])].filter(Boolean))run('INSERT INTO outbox(id,booking_id,recipient,subject,body,attachments_json,reply_to) VALUES(?,?,?,?,?,?,?)',[crypto.randomUUID(),b.id,recipient,message.subject,message.body+(recipient===venue.email?message.staffNote:''),JSON.stringify(message.attachments),recipient===venue.email?b.email:venue.email]);
 }
 function createBooking(req,res){
  if(!serviceAccess(process.env.MANAGED_ENTITLEMENT).allowed)return res.status(503).json({error:'Online reservations are temporarily unavailable. Please contact the venue directly.'});

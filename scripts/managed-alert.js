@@ -15,7 +15,7 @@ const signature=JSON.stringify({status:report.status,issues:report.issues});
 if(enabled&&(process.argv.includes('--test')||previous?.signature!==signature||report.status==='attention'&&Date.now()-(previous?.sentAt||0)>6*3600e3)){
  const transport=createMailTransport({...process.env,MAIL_TRANSPORT:process.env.MAIL_TRANSPORT||'sendmail'});
  try{
-  await transport.sendMail({from:process.env.SMTP_FROM||'Coverstead monitoring <hello@coverstead.net>',to:'hello@coverstead.net',replyTo:'hello@coverstead.net',subject:'Coverstead monitoring: '+(process.argv.includes('--test')?'delivery test':report.status),text:'Coverstead hosted-service monitoring\n\n'+(report.issues.length?report.issues.join('\n'):'Workers and recent backup checks passed.')+'\n\nNo guest data is included. Check the private operator records for details.\n'});
+  await transport.sendMail({from:process.env.SMTP_FROM||'Coverstead monitoring <hello@coverstead.net>',to:'hello@coverstead.net',subject:'Coverstead monitoring: '+(process.argv.includes('--test')?'delivery test':report.status),text:'Coverstead hosted-service monitoring\n\n'+(report.issues.length?report.issues.join('\n'):'Workers and recent backup checks passed.')+'\n\nNo guest data is included. Check the private operator records for details. This automated alert does not need a reply.\n'});
   fs.writeFileSync(stateFile+'.tmp',JSON.stringify({signature,sentAt:Date.now()})+'\n',{mode:0o600});fs.renameSync(stateFile+'.tmp',stateFile);
   console.log('Monitoring message accepted by the mail service.');
  }catch{console.error('Monitoring email failed; no delivery marker written.');process.exitCode=1;}finally{transport.close?.();}

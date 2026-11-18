@@ -31,6 +31,7 @@ test('real SMTP dialogue accepts synthetic mail, records rejection, and suppress
  await new Promise(resolve=>smtp.listen(0,'127.0.0.1',resolve));
  try{
   transaction(()=>{for(const [id,recipient,category] of [['accept','guest@example.invalid',null],['reject','reject@example.invalid',null],['withdrawn','former@example.invalid','loyalty']])run('INSERT INTO outbox(id,recipient,subject,body,category,customer_id,attachments_json) VALUES(?,?,?,?,?,?,?)',[id,recipient,'Synthetic rehearsal','No real guest data',category,'missing-customer','[]']);});
+  transaction(()=>{for(const [id,reply] of [['staff-reply','guest@example.invalid'],['legacy-staff',null]])run('INSERT INTO outbox(id,recipient,subject,body,reply_to) VALUES(?,?,?,?,?)',[id,'venue@example.invalid','Synthetic staff copy','No private notes',reply]);});
   const env={SMTP_HOST:'127.0.0.1',SMTP_PORT:String(smtp.address().port),EMAIL_DNS_READY:'true',SMTP_FROM:'Test <sender@example.invalid>',PUBLIC_URL:'http://localhost:3100'};
   const send=createMailSender({query,run,transaction,venue:{name:'Synthetic Inn',email:'venue@example.invalid'},assets:directory,env,transportFactory:options=>{
    assert.equal(options.requireTLS,true); // Production keeps TLS mandatory.
@@ -38,8 +39,10 @@ test('real SMTP dialogue accepts synthetic mail, records rejection, and suppress
    return nodemailer.createTransport({...options,requireTLS:false,ignoreTLS:true});
   }});
   const results=await Promise.all([send(),send()]);
-  assert.equal(results.reduce((n,r)=>n+r.accepted,0),1);assert.equal(results.reduce((n,r)=>n+r.failed,0),1);assert.equal(results.reduce((n,r)=>n+r.skipped,0),1);
-  assert.equal(messages.length,1);assert.match(messages[0],/No real guest data/);assert.match(messages[0],/Message-ID: <accept@localhost>/i);
+  assert.equal(results.reduce((n,r)=>n+r.accepted,0),3);assert.equal(results.reduce((n,r)=>n+r.failed,0),1);assert.equal(results.reduce((n,r)=>n+r.skipped,0),1);
+  assert.equal(messages.length,3);assert.match(messages[0],/No real guest data/);assert.match(messages[0],/Message-ID: <accept@localhost>/i);
+  const guest=messages.find(m=>m.includes('<accept@localhost>')),staff=messages.find(m=>m.includes('<staff-reply@localhost>')),legacy=messages.find(m=>m.includes('<legacy-staff@localhost>'));
+  assert.match(guest,/Reply-To: venue@example.invalid/i);assert.match(staff,/Reply-To: guest@example.invalid/i);assert.doesNotMatch(legacy,/Reply-To:/i);
   assert.ok(query("SELECT sent FROM outbox WHERE id='accept'")[0].sent);
   assert.equal(query("SELECT attempts FROM outbox WHERE id='reject'")[0].attempts,1);
   assert.equal(query("SELECT id FROM outbox WHERE id='withdrawn'").length,0);
