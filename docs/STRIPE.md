@@ -1,4 +1,6 @@
-# Coverstead Stripe subscription pilot
+# Coverstead Stripe subscriptions
+
+**Hosted MVP status,18November2026:** live Stripe billing is enabled on the DigitalOcean product installation for operator-invited, ready venues. The live £25/£250 catalog, account charging/payout capability, portal and webhook are verified. Public identity/billing protections pass; no real subscription or charge was created for testing. The separate preview remains test mode. Each real venue must pass its own readiness and agree before subscription Checkout. The first cohort is limited to three venues.
 
 ## Business and planner decisions
 
@@ -12,14 +14,14 @@ Implementation uses Stripe Node SDK 23.1.0 and API `2026-10-28.endive`, verified
 
 ## What is implemented
 
-- `/billing`: clearly labelled test signup, sign-in, monthly/annual selection, subscription status, refresh and portal access.
+- `/billing`: mode-labelled signup/sign-in, monthly/annual selection, subscription status, refresh and portal access; live signup is limited to invited venues.
 - Separate billing accounts and hashed sessions; venue staff identities and data remain separate.
 - Server-owned price selection, customer mapping and redirect URLs. Browser-supplied amounts, price IDs and customer IDs are ignored.
 - Per-account checkout serialization, persisted attempts, Stripe idempotency keys, and reuse/expiry of open Checkout Sessions.
 - `/api/stripe/webhook`: raw-body signature verification before JSON parsing, test-mode enforcement, durable event deduplication, and current subscription retrieval to tolerate out-of-order delivery. Events for unrelated customers/products are ignored.
 - Trial, active, past-due, unpaid, paused and cancelled state stored locally. Failed processing returns a retryable status instead of acknowledging unprocessed events.
 - A dedicated Coverstead Customer Portal configuration permits payment-method updates, invoice access and cancellation at the period end. It does not modify the Stripe account's default portal configuration. Interval changes are not enabled in this pilot.
-- No live key is accepted. Test Checkout never creates a hosted venue, activates Enterprise on another installation or changes guest reservations.
+- Live keys require the explicit live-mode configuration below. Test Checkout never creates a hosted venue, activates Enterprise on another installation or changes guest reservations.
 
 ## Private setup
 
@@ -60,7 +62,7 @@ If a network failure leaves a checkout attempt with an unknown result, retry the
 
 This is test billing, not a completed managed SaaS operation. Automatic venue provisioning, cross-installation service entitlement enforcement, off-server backup monitoring, uptime/restart monitoring and formal support operations remain unconnected. A new billing account does not get access to the home installation's owner onboarding. Each real venue still needs its own app/database/hostname and deliberate provisioning.
 
-Before live enrolment: settle service/cancellation/privacy terms and the trial-to-service start policy, verify the legal business identity and public receipt/support details in Stripe, review VAT and customer jurisdictions, configure trial/renewal reminders and Revenue Recovery, extend and rehearse the restricted test identity flow for live use, and rehearse live-mode readiness separately. The application deliberately rejects live keys until that work is complete. It does not assume that Stripe recovery email settings are enabled merely because the planner recommended them.
+Before live enrolment: settle service/cancellation/privacy terms and the trial-to-service start policy, verify the legal business identity and public receipt/support details in Stripe, review VAT and customer jurisdictions, configure trial/renewal reminders and Revenue Recovery, extend and rehearse the restricted test identity flow for live use, and rehearse live-mode readiness separately. The application requires a completed private launch record and an explicitly separate live billing database; those global checks are complete for the hosted MVP, while venue-specific checks still gate each invitation. It does not assume that Stripe recovery email settings are enabled merely because the planner recommended them.
 
 Official references: [Hosted subscriptions](https://docs.stripe.com/billing/subscriptions/build-subscriptions?payment-ui=checkout&ui=stripe-hosted&platform=web), [trial offers and Checkout limitations](https://docs.stripe.com/billing/subscriptions/trials), [Customer Portal](https://docs.stripe.com/customer-management/integrate-customer-portal), [webhooks](https://docs.stripe.com/webhooks), [Stripe Tax setup](https://docs.stripe.com/tax/set-up).
 
@@ -83,13 +85,13 @@ BILLING_EMAIL_FROM=<verified company sender>
 BILLING_EMAIL_TEST_RECIPIENTS=<comma-separated controlled test mailboxes>
 ```
 
-The current implementation uses `/usr/sbin/sendmail` and creates new accounts/sends identity messages only for the configured test recipients. It does not turn on venue booking SMTP. Without this configuration, new test-account signup/recovery is unavailable. Replies remain generic for other addresses. No live key is accepted. A link-delivery failure leaves the existing password unchanged; the user can request another link after the cooldown. Identity mail is sent asynchronously, without a durable plaintext-token outbox; a crash before handoff requires a new link. The operator should monitor generic transport errors without logging links or passwords.
+The original test transport uses `/usr/sbin/sendmail`; the hosted MVP uses the configured Scaleway HTTPS transport. Test mode creates accounts/sends identity messages only for configured test recipients, while live mode uses the managed venue invitation registry. It does not turn on venue booking SMTP. Without this configuration, new test-account signup/recovery is unavailable. Replies remain generic for other addresses. Live keys require the explicit live-mode configuration below. A link-delivery failure leaves the existing password unchanged; the user can request another link after the cooldown. Identity mail is sent asynchronously, without a durable plaintext-token outbox; a crash before handoff requires a new link. The operator should monitor generic transport errors without logging links or passwords.
 
 Tests exercise verification before login/checkout, purpose separation, hash-only token storage, expiry, replay rejection, generic recovery, cooldown, password confirmation, old-password rejection, session revocation and cross-account isolation. Transport tests enforce the recipient allowlist and sendmail rejection handling. These tests use synthetic accounts and captured mail, not real recipients or Stripe payments.
 
-Design reference: [OWASP password recovery guidance](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html). The test recipient restriction, sendmail dependency, operational delivery monitoring, live service terms and broader managed-service readiness still need deliberate review before customer billing opens.
+Design reference: [OWASP password recovery guidance](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html). Keep the preview recipient restriction. Actual hosted mail, published service terms, production recovery and monitoring are verified; each real venue’s recipient and service checks remain mandatory.
 
 
-## Explicit live-mode preparation
+## Explicit live mode
 
-The earlier test-only boundary is now extended by an explicit live mode, defaulting off. See [MANAGED-HOSTING.md](MANAGED-HOSTING.md) for assisted enrolment, private launch evidence, invitation/readiness checks, separate billing data, terms acceptance, service access and reconciliation. `scripts/stripe-setup.js --live` requires a live key and checks account charges/payouts status. This support has been exercised with a fake Stripe transport; no real charges or live catalog objects have been created during this preparation. The production site remains test-only until the missing credentials and operational evidence are supplied.
+Live mode defaults off on downloaded/self-hosted installations. See [MANAGED-HOSTING.md](MANAGED-HOSTING.md) for assisted enrolment, private launch evidence, invitation/readiness checks, separate billing data, terms acceptance, service access and reconciliation. `scripts/stripe-setup.js --live` requires a live key and checks account charges/payouts status. The hosted product now uses its prepared live catalog and a fresh owner-only billing database; old test data was retained separately. The former public test webhook is disabled, and the separate preview test endpoint remains enabled. Actual signed test events were rehearsed; the first genuine customer subscription will provide the first live subscription/payment delivery evidence. Never create a fake live customer or charge to claim that evidence.

@@ -2,9 +2,9 @@
 
 The first hosted service uses assisted setup, one venue per billing account, and a maximum of three configured venues per gateway. This conservative launch limit leaves room to measure usage and support on the dedicated DigitalOcean VM before expanding; it is not a measured capacity claim. Each venue gets a separate process, database, assets, setup token, configuration and HTTPS hostname. All hosted files remain inside the dedicated Coverstead application. No arbitrary visitor-created subdomains or automatic paid provisioning are enabled.
 
-The assisted MVP has tested hosting, mail, backup/recovery and billing infrastructure. Final public deployment is recorded in PRODUCT-STATUS.md. Each real venue still needs its own completed checks; never populate its readiness record with assumed results or another venue’s rehearsal.
+The assisted MVP has tested hosting, mail, backup/recovery and billing infrastructure. The product website and live assisted billing are deployed on DigitalOcean; current evidence is recorded in PRODUCT-STATUS.md. Each real venue still needs its own completed checks; never populate its readiness record with assumed results or another venue’s rehearsal.
 
-For the separate DigitalOcean migration rehearsal and its remaining checks, see [DIGITALOCEAN.md](DIGITALOCEAN.md). The managed container package does not change the active Opalstack deployment or lift any launch gate.
+For the completed DigitalOcean handover and staged deployment procedure, see [DIGITALOCEAN.md](DIGITALOCEAN.md). Source helpers alone do not establish a real venue’s readiness.
 
 ## Prepare a venue
 

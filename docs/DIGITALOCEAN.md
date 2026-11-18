@@ -1,8 +1,10 @@
 # DigitalOcean migration: staged deployment
 
-Status, 18 November 2026 evening: staging is verified and a separate production installation with the real owner is running privately. The production image passes 83 tests; its encrypted backup has been restored on the separate operator Mac, including owner/private-inbox access. Daily production backups and one-minute health checks are installed. The public website remains on Opalstack pending dashboard sign-in and the final tested HTTPS/DNS/data handover. Live payments remain disabled in the new runtime.
+Status,18November2026 evening: the Coverstead website and live assisted billing are now running on DigitalOcean. The apex/www A records were changed only after trusted production HTTPS, real owner access, recovery and proxy checks passed. Final old-host data was preserved; aggregate counts were transferred, and the old endpoint now forwards to the same production writer during propagation. The real product owner is active, current notices are published, automatic certificates are verified, and the external uptime target now monitors production. Mailbox MX, nameservers and other applications are unchanged.
 
-The owner has chosen to launch the assisted MVP using the existing Opalstack company mailbox, Scaleway transactional email and Backblaze backups. Detailed provider correspondence is background work; no mailbox purchase, MX change or additional provider is part of this move. Public notices describe the actual arrangements and outstanding review honestly.
+The production runtime passes83 tests locally, in its Node24 image and in CI. Public owner/inbox/logout, enquiry deduplication and actual notification receipt, live-mode billing configuration and anonymous/cross-origin/unsigned-webhook protections passed. Separate encrypted production backup/restore and daily/minute operations are verified. There are no real customer subscriptions or charges yet; each of the first three venues needs its own readiness before Checkout.
+
+The owner chose the existing Opalstack company mailbox, Scaleway transactional email and Backblaze backups. Detailed provider correspondence is background work; no mailbox purchase, MX change or additional provider was part of this move. Notices describe actual arrangements and outstanding review honestly. The sections below preserve the staged deployment procedure and its dated evidence; they do not override this completed handover.
 
 ## Verified cloud rehearsal
 
