@@ -1,6 +1,6 @@
 # Run a useful Coverstead venue pilot
 
-Start with one independent venue and a named operator. Coverstead Community is MIT-licensed; your hosting, email and support arrangements are separate. Managed enrolment is not open. Do not promise a partner commission, service entitlement or automatic migration.
+Start with one independent venue and a named operator. Coverstead Community is MIT-licensed; your hosting, email and support arrangements are separate. [Hosted Enterprise](https://coverstead.net/managed) is open for an assisted first cohort of three venues. We prepare and check each venue before subscription invitation. Do not promise a partner commission, service entitlement or automatic migration.
 
 ## Agree what success means
 

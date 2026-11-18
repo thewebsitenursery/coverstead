@@ -8,6 +8,10 @@ The real Alistair product owner can sign in at `/admin/enquiries`. Public owner 
 
 Runtime536e81a passes all83 tests locally, in its Node24 image and in Node20/22/24 CI. Separate encrypted production backups, a restore onto the operator Mac including owner/private-inbox access, daily backup and one-minute monitoring schedules are verified. The existing external uptime check now watches the production health endpoint. The first assisted cohort is limited to three venues. Earlier dated sections below are historical records; their former test-only/provider-reply launch gates are superseded by this current status.
 
+## Enterprise signup journey — 18 November 2026
+
+The public homepage leads with “Get started here”, linking directly to `/get-started`. Hosted Enterprise appears before Community in pricing. The signup form requires only venue name, email and contact permission; an operational question is optional. Requests use the existing private inbox and protections, and the confirmation explains the assisted setup and response aim. Demo completion and suitable hosted fit results lead directly to signup. Material feature boundaries remain in FAQs/manuals; the marketing path now leads with benefits and the next action. The short form does not provision a venue or start billing. Real venue readiness, subscription agreement and the first calendar month at Checkout remain unchanged.
+
 ## Product and price
 
 Coverstead: Full tables. Calmer service. Built from the locally recovered Red Lion reservation source. The free tool is positioned as Alistair giving something useful back to independent hospitality businesses.

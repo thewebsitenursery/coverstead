@@ -2,6 +2,10 @@
 
 The product website at coverstead.net accepts private enquiries at `/enquire`, linked from the homepage, managed-service overview and getting-started page. Classicbikemerch Ltd operates the service; Alistair handles enquiries through hello@coverstead.net. This does not create a subscription, newsletter signup or hosted venue. Community installations keep the feature disabled by default.
 
+## Hosted signup
+
+`/get-started` is the direct hosted Enterprise signup route. It asks for venue name, email and contact permission, with an optional question. It creates a managed setup request in this same private inbox, with the same limits, deduplication, notification and retention; it does not create a venue, staff account or subscription. The confirmation gives the reference and tells the visitor that Alistair will email to arrange setup. The free month begins at the existing ready-venue subscription Checkout, after assisted setup. General enquiries and privacy requests remain at `/enquire`.
+
 ## Configuration
 
 Only an installation intended to collect product enquiries should enable:
