@@ -1,8 +1,8 @@
 # Hosted Enterprise: assisted launch
 
-The first hosted service uses assisted setup, one venue per billing account, and a maximum of three configured venues per gateway. This conservative launch limit leaves room to measure memory on the existing shared hosting plan before expanding; it is not a measured capacity claim. Each venue gets a separate process, database, assets, setup token, configuration and HTTPS hostname. All hosted files remain inside the dedicated Coverstead application. No arbitrary visitor-created subdomains or automatic paid provisioning are enabled.
+The first hosted service uses assisted setup, one venue per billing account, and a maximum of three configured venues per gateway. This conservative launch limit leaves room to measure usage and support on the dedicated DigitalOcean VM before expanding; it is not a measured capacity claim. Each venue gets a separate process, database, assets, setup token, configuration and HTTPS hostname. All hosted files remain inside the dedicated Coverstead application. No arbitrary visitor-created subdomains or automatic paid provisioning are enabled.
 
-The implementation is launch preparation. Live keys, hosting routes, delivery, off-server storage, service documents and account settings must be verified before live activation. Never fill a readiness record with assumed or synthetic evidence on the production system.
+The assisted MVP has tested hosting, mail, backup/recovery and billing infrastructure. Final public deployment is recorded in PRODUCT-STATUS.md. Each real venue still needs its own completed checks; never populate its readiness record with assumed results or another venue’s rehearsal.
 
 For the separate DigitalOcean migration rehearsal and its remaining checks, see [DIGITALOCEAN.md](DIGITALOCEAN.md). The managed container package does not change the active Opalstack deployment or lift any launch gate.
 
@@ -39,6 +39,6 @@ Official operational references: [Stripe live checklist](https://docs.stripe.com
 
 ## Provider terms and operational launch record
 
-The existing hosting provider’s processing agreement, sub-processors, transfer safeguards and infrastructure backup/deletion retention need explicit confirmation. Its public terms describe 12-week infrastructure backups. Do not claim the 35-day Coverstead repository policy removes those provider copies. Keep live Checkout gated until the contract and public notices match the actual arrangements. Backblaze’s DPA is incorporated into its terms; the selected repository uses EU Central storage.
+The owner’s 18 November MVP decision keeps the existing company mailbox on Opalstack and defers detailed provider follow-ups. Its stated 12-week infrastructure backups are separate from Coverstead’s recovery schedule; do not claim the 35-day application policy deletes those copies or that the mailbox contract review is complete. The notices describe the actual providers and outstanding review. Backblaze’s DPA is incorporated into its terms; the selected repository uses EU Central storage. Per-venue readiness and accepted service terms still gate live Checkout.
 
 Schedule `scripts/managed-offsite-cron.sh` daily only after repository initialization and a verified restore. Keep the one-minute scoped monitor and preserve every unrelated cron entry. The restricted backup key expires in November 2027; rotate before expiry, and keep the repository encryption password on a separate protected device. A free-storage or transaction cap can stop backups, so retain storage alerts and monitor backup freshness. Review application logs and remove records older than 90 days; review closed customer records, exports and deletion completion monthly.
