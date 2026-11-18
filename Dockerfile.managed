@@ -7,7 +7,10 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts
 COPY . .
-RUN npm run release \
+# Archives extracted under an operator's private umask can contain 0700
+# source directories. The public source must remain readable by USER node.
+RUN chmod -R a+rX /app \
+    && npm run release \
     && mkdir -p /var/lib/coverstead \
     && chown node:node /var/lib/coverstead
 USER node
