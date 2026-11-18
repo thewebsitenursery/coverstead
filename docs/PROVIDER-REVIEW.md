@@ -1,4 +1,4 @@
-# Hosted-provider review — 17 November 2026
+# Hosted-provider review — updated 18 November 2026
 
 This records evidence and unresolved points for the proposed cloud service. It does not declare paid enrolment open. Production still uses its existing host; the cloud runtime contains rehearsal data. Update public notices and the private launch record only when the final operating arrangement is confirmed.
 
@@ -20,6 +20,8 @@ The final email notice must match the active transport. Scaleway now serves stag
 ## Remaining email and mailbox decisions
 
 The recipient server marked all six Scaleway messages as spam despite putting them in the Inbox. Scores were 11.02–13.51, versus 2.02–3.43 for earlier Brevo tests and -0.80 for the older local-sendmail booking test. Authentication passing does not identify the cause. Authorized requests ask Scaleway about delivery infrastructure and the account quota, and Opalstack for the actual spam-rule breakdown. Do not invent a reputation diagnosis, weaken filtering or claim general inbox reliability from these samples. After a specific correction, repeat only the affected delivery checks.
+
+On 18 November, a controlled pair tested Opalstack's explanation that a recipient matching Reply-To can inflate its score. Both messages used the same sender, recipient, subject, body and sending IP, with unique message IDs. The matching Reply-To message scored 11.78 and was marked spam; the message without Reply-To scored 6.78 and was not. Both arrived with SPF, DKIM and DMARC passing. This supports a five-point test-address penalty; it does not prove delivery to other providers or justify removing the application's normal reply route. The requested synthetic headers and comparison were supplied in the existing Scaleway diagnostic ticket. A separate owner-controlled test mailbox and account-specific sending-ceiling confirmation remain outstanding. No filter, runtime Reply-To or account access setting was changed.
 
 The Opalstack reply also describes account-closure data retention of 60 days unless otherwise requested, with administrative/financial exceptions. That is distinct from its 12-week infrastructure backup window. The account hosts unrelated applications and must not be closed as part of Coverstead's move. Record any Coverstead-specific exclusion/deletion request separately; no such deletion or exclusion has been requested by this change. The reply included subprocessor and security-policy attachments, which have not yet been reviewed. A general privacy policy is not evidence that all required processing-contract terms have been agreed.
 

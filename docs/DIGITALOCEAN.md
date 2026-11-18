@@ -1,6 +1,6 @@
 # DigitalOcean migration: staged deployment
 
-Status: cloud rehearsal in progress, 17 November 2026. A dedicated London VM now runs the synthetic preview with valid HTTPS. The current website and mailbox remain on their existing host. This is not the production switch or a live billing launch. The checks below separate verified staging behavior from the work still needed before cutover.
+Status: cloud rehearsal in progress, 18 November 2026. A dedicated London VM runs the synthetic preview with valid HTTPS; its unattended overnight encrypted backup completed successfully. The current website and mailbox remain on their existing host. This is not the production switch or a live billing launch. The checks below separate verified staging behavior from the work still needed before cutover.
 
 ## Verified cloud rehearsal
 
@@ -112,7 +112,7 @@ Use a dedicated project and an application key with `TransactionalEmailEmailApiC
 
 Scaleway's API does not document idempotent request retries. Stable Message-ID values aid diagnosis; a lost acceptance response can still produce a duplicate when the app retries. Its API payload limit is 2 MB; booking emails continue using menu links. Use the service for individual transactional messages, not bulk marketing campaigns. Review the provider's retention details in [PROVIDER-REVIEW.md](PROVIDER-REVIEW.md), and verify raw received content before claiming that tracking is absent.
 
-Six received synthetic messages were marked spam by the recipient server, with scores of 11.02–13.51. The owner authorized diagnostic support requests to both providers; these are sent and awaiting replies. Do not weaken filtering or treat an API acceptance/Delivered label as general inbox reliability. The owner has enabled Scaleway TOTP and its active state was verified; recovery codes remain under the owner’s control. See [PROVIDER-REVIEW.md](PROVIDER-REVIEW.md).
+Six received synthetic messages were marked spam by the recipient server, with scores of 11.02–13.51. Both providers replied to the authorized diagnostic requests. Opalstack identified the matching recipient/Reply-To as a possible cause; a controlled pair then scored 11.78 with it and 6.78 without it, the latter without a spam flag. The normal customer flow still needs verification with a separate controlled recipient, and Scaleway's account ceiling remains unconfirmed. No filtering or runtime reply route was changed. The owner has enabled Scaleway TOTP and its active state was verified; recovery codes remain under the owner’s control. See [PROVIDER-REVIEW.md](PROVIDER-REVIEW.md).
 
 The website TTL preparation was verified at 21:54 UTC on 17 November; wait out the previous one-hour TTL before a later cutover. No production A destination, nameserver or root MX record was changed. The runtime remains staging and billing remains test-only.
 
