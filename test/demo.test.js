@@ -33,10 +33,10 @@ test('guided demo completion requires the visitor booking and its staff action',
  assert.equal(demoProgress(sampleBookings(date),'visitor',true).complete,false);
 });
 
-test('venue-fit advice exposes material gaps and never offers immediate managed enrolment',async()=>{
+test('venue-fit advice exposes material gaps and offers setup before the hosted trial',async()=>{
  const {venueFit}=await import('../public/lead-options.js');
  for(const need of ['cards','sms','pos'])assert.equal(venueFit({locations:'one',need,hosting:'managed'}).gaps.length,1);
  const multiple=venueFit({locations:'several',need:'cards',hosting:'community'});assert.equal(multiple.gaps.length,2);assert.equal(multiple.kind,'community');
- const core=venueFit({locations:'one',need:'bookings',hosting:'managed'});assert.equal(core.gaps.length,0);assert.match(core.next,/does not open a trial/);
+ const core=venueFit({locations:'one',need:'bookings',hosting:'managed'});assert.equal(core.gaps.length,0);assert.match(core.next,/first month begins when it is ready/);
  assert.throws(()=>venueFit({locations:'unknown',need:'bookings',hosting:'managed'}),/Choose/);
 });

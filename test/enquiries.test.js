@@ -7,7 +7,24 @@ import crypto from 'node:crypto';
 import express from 'express';
 import {createEnquiryInbox,enquirySettings,registerEnquiries} from '../enquiries.js';
 import {request} from './request.js';
+import {setupRequest} from '../public/setup-request.js';
 const sample=()=>({id:crypto.randomUUID(),email:'owner@example.invalid',venue:'Synthetic Inn',kind:'managed',message:'Can we rehearse a sample service?',contact_permission:true,website:''});
+
+test('two-detail hosted signup reaches the private inbox once without an open-ended question',async()=>{
+ const directory=fs.mkdtempSync(path.join(os.tmpdir(),'coverstead-signup-'));
+ try{
+  const app=express();app.use(express.json());registerEnquiries(app,{settings:{enabled:true,directory,contact:'support@example.invalid'}});
+  const form=new FormData();form.set('venue','Synthetic Signup Inn');form.set('email','owner@example.invalid');form.set('contact_permission','on');
+  const input=setupRequest(form,crypto.randomUUID());
+  assert.equal((await request(app,'/api/enquiries',{method:'POST',body:input})).status,202);
+  assert.equal((await request(app,'/api/enquiries',{method:'POST',body:input})).status,202);
+  const inbox=createEnquiryInbox(directory);assert.equal(inbox.summary().total,1);
+  const record=inbox.read(input.id);assert.equal(record.kind,'managed');assert.equal(record.email,'owner@example.invalid');assert.equal(record.venue,'Synthetic Signup Inn');assert.ok(record.message.includes('set up hosted Coverstead'));assert.equal(record.notice_version,'2026-11-18.1');
+  form.set('message','x'.repeat(1400));inbox.accept(setupRequest(form,crypto.randomUUID()));
+  form.delete('contact_permission');assert.throws(()=>inbox.accept(setupRequest(form,crypto.randomUUID())),/Confirm/);
+  assert.equal((await request(app,'/api/enquiries')).status,404);
+ }finally{fs.rmSync(directory,{recursive:true,force:true});}
+});
 
 test('enquiries require explicit readiness and preserve private records through retries and status changes',()=>{
  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'coverstead-enquiries-'));let date=new Date('2026-11-17T06:00Z');const inbox=createEnquiryInbox(directory,()=>date);

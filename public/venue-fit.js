@@ -7,6 +7,8 @@ form.addEventListener('submit',event=>{
  document.querySelector('#fit-next').textContent=answer.next;
  const params=new URLSearchParams({source:'fit',kind:answer.kind});
  for(const key of ['venue_type','booking_method','timing','locations','need'])if(data[key])params.set(key,data[key]);
- document.querySelector('#fit-enquire').href='/enquire?'+params;
+ const action=document.querySelector('#fit-enquire');
+ action.href=answer.kind==='managed'&&!answer.gaps.length?'/get-started':'/enquire?'+params;
+ action.textContent=answer.kind==='managed'&&!answer.gaps.length?'Get started here →':'Discuss these needs →';
  result.hidden=false;result.focus();
 });
