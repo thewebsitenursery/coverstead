@@ -1,0 +1,19 @@
+{
+  "prepared": "2026-11-18",
+  "status": "Prepared; publication blocked on listed provider fields and coordinated migration",
+  "serviceTermsVersion": "2026-11-18",
+  "enquiryNoticeVersion": "2026-11-18.1",
+  "publishable": false,
+  "pending": [
+    "company-mailbox provider actually selected and provisioned",
+    "applicable UK transfer mechanism and provider/support entities",
+    "residual mailbox backup expiry after deletion/cancellation",
+    "actual mailbox migration and old-copy retirement schedule"
+  ],
+  "files": [
+    "privacy.html",
+    "data-processing.html",
+    "service-terms.html",
+    "enquire.html"
+  ]
+}
