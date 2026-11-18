@@ -38,7 +38,8 @@ app.use('/api',(req,res,next)=>{res.set('Cache-Control','no-store');if(req.metho
 function throttle(req,res,next){const key=req.ip+':'+req.path;const now=Date.now();let x=limits.get(key);if(!x||x.end<now){x={n:0,end:now+15*60e3};limits.set(key,x);}if(++x.n>30)return res.status(429).json({error:'Too many attempts. Please try again in 15 minutes.'});next();}
 const clean=(x,max)=>typeof x==='string'?x.trim().slice(0,max):'';
 registerPlatform(app,throttle);
-registerEnquiries(app);
+registerEnquiries(app,{auth});
+app.get('/admin/enquiries',(_req,res)=>{res.set('Cache-Control','no-store');res.sendFile(path.join(dirname,'public/enquiry-inbox.html'));});
 billing.registerRoutes(app,throttle);
 app.get('/api/config',(req,res)=>res.json({...publicVenue(),tables,combinations,duration:venue.duration,kitchenLimit,christmasSeason,today:londonNow().slice(0,10),deposit:venue.groupDeposit/100,depositBasis:'booking',paymentsConfigured:false,emailReady:!demo&&mailTransportConfigured()&&process.env.EMAIL_DNS_READY==='true',demo}));
 app.use(['/api/availability','/api/bookings','/api/admin/bookings','/api/admin/walk-ins'],(req,res,next)=>{
@@ -50,7 +51,9 @@ app.get('/api/availability',(req,res)=>{const date=clean(req.query.date,10),size
 function queue(b,kind=b.status==='pending_deposit'?'pending_deposit':'confirmed'){
  if(b.walk_in)return;
  const message=bookingMessage(b,kind,process.env.PUBLIC_URL,venue.phone);
- for(const recipient of [b.email,...(b.staff_created?[]:[venue.email])].filter(Boolean))run('INSERT INTO outbox(id,booking_id,recipient,subject,body,attachments_json) VALUES(?,?,?,?,?,?)',[crypto.randomUUID(),b.id,recipient,message.subject,message.body+(recipient===venue.email?message.staffNote:''),JSON.stringify(message.attachments)]);
+ // Save the reply destination with the queued message, so retries do not
+ // accidentally use a guest address changed after this notification was made.
+ for(const recipient of [b.email,...(b.staff_created?[]:[venue.email])].filter(Boolean))run('INSERT INTO outbox(id,booking_id,recipient,subject,body,attachments_json,reply_to) VALUES(?,?,?,?,?,?,?)',[crypto.randomUUID(),b.id,recipient,message.subject,message.body+(recipient===venue.email?message.staffNote:''),JSON.stringify(message.attachments),recipient===venue.email?b.email:venue.email]);
 }
 function createBooking(req,res){
  if(!serviceAccess(process.env.MANAGED_ENTITLEMENT).allowed)return res.status(503).json({error:'Online reservations are temporarily unavailable. Please contact the venue directly.'});

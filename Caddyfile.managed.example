@@ -1,0 +1,5 @@
+# Rehearsal hostnames only. Do not add production hosts before cutover checks.
+preview.coverstead.net, cloud-rehearsal.coverstead.net {
+    header X-Robots-Tag "noindex, nofollow, noarchive"
+    reverse_proxy coverstead:3100
+}

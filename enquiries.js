@@ -5,7 +5,7 @@ import {leadOptions} from './public/lead-options.js';
 
 const idPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const emailPattern = /^[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9-]+(?:\.[A-Z0-9-]+)+$/i;
-export const enquiryNoticeVersion = '2026-11-17.2';
+export const enquiryNoticeVersion = '2026-11-18.1';
 const fail = (message, status = 400) => Object.assign(Error(message), {status});
 const statuses=['new','contacted','qualified','rehearsal','waiting','closed'];
 export function enquiryContext(input={}) {
@@ -90,8 +90,13 @@ export function createEnquiryInbox(directory, now = () => new Date()) {
   function summary(){prune();const records=list(),pending=records.filter(r=>r.status!=='closed'&&!r.notification?.acceptedAt),open=records.filter(r=>r.status!=='closed');return {total:records.length,...Object.fromEntries(statuses.map(status=>[status,records.filter(r=>r.status===status).length])),followUpsDue:open.filter(r=>r.follow_up&&r.follow_up<=now().toISOString().slice(0,10)).length,nextFollowUp:open.map(r=>r.follow_up).filter(Boolean).sort()[0]||null,oldestNew:records.filter(r=>r.status==='new').map(r=>r.created).sort()[0]||null,alertsPending:pending.length,alertsFailed:pending.filter(r=>r.notification?.attempts>=20).length};}
   return {accept,prune,list,read,setStatus,setNotification,setFollowUp,remove,summary};
 }
-export function registerEnquiries(app,{settings=enquirySettings(),now=()=>new Date()}={}) {
+export function registerEnquiries(app,{settings=enquirySettings(),now=()=>new Date(),auth}={}) {
   const inbox=createEnquiryInbox(settings.directory,now),attempts=new Map();
+  if(auth){
+    const owner=(req,res,next)=>{if(!settings.enabled)return res.status(404).json({error:'Not found.'});if(req.user.role!=='owner')return res.status(403).json({error:'Only the product owner can read enquiries.'});next();};
+    app.get('/api/admin/enquiries',auth,owner,(_req,res)=>{inbox.prune();res.json({records:inbox.list().sort((a,b)=>b.created.localeCompare(a.created))});});
+    app.patch('/api/admin/enquiries/:id',auth,owner,(req,res,next)=>{try{inbox.setStatus(req.params.id,req.body.status);res.json({ok:true});}catch(error){next(error);}});
+  }
   const flush=settings.enabled&&settings.notify?createEnquiryNotifier({inbox,deliver:createEnquiryDelivery(settings.contact),now}):async()=>{};
   const notify=()=>void flush().catch(()=>console.warn('Enquiry alert queue needs operator review.'));
   app.get('/api/enquiries/config',(_req,res)=>res.json({enabled:settings.enabled,contact:settings.enabled?settings.contact:null,noticeVersion:enquiryNoticeVersion}));

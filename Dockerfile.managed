@@ -1,0 +1,19 @@
+# Separate managed gateway image; the Community Dockerfile remains available.
+FROM node:24-bookworm-slim
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates restic zip \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts
+COPY . .
+# Archives extracted under an operator's private umask can contain 0700
+# source directories. The public source must remain readable by USER node.
+RUN chmod -R a+rX /app \
+    && npm run release \
+    && mkdir -p /var/lib/coverstead \
+    && chown node:node /var/lib/coverstead
+USER node
+ENV NODE_ENV=production ENV_FILE=/var/lib/coverstead/config.env
+EXPOSE 3100
+CMD ["node", "managed-gateway.js"]

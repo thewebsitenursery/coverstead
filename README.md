@@ -23,9 +23,9 @@ Coverstead grew from the reservation app at The Red Lion in Kilsby. Alistair wan
 
 Version **0.2.0-pilot.1** is an early pilot. Rehearse bookings, email delivery and backup recovery on your own installation before using it for a real service. Read the [product status](docs/PRODUCT-STATUS.md) for implemented features and limitations.
 
-The entire source, including the optional Enterprise administration modules, is [MIT-licensed](LICENSE). The planned managed service covers hosting, updates, backups and support: one free month, then £25 per venue per month or £250 per year. Coverstead is operated by Classicbikemerch Ltd.
+The entire source, including the optional Enterprise administration modules, is [MIT-licensed](LICENSE). The assisted Enterprise pilot is open for its first three venues and covers hosting, updates, backups and support: one free month, then £25 per venue per month or £250 per year. Coverstead is operated by Classicbikemerch Ltd.
 
-Managed subscriptions currently work **only in Stripe test mode**. They take no real payment and do not provision a hosted venue. Guest online payments are disabled. Self-hosting does not require Stripe or a subscription.
+Managed subscriptions use live Stripe Checkout after your venue is set up and checked with you. [Arrange your venue setup](https://coverstead.net/enquire); an enquiry does not start the free month or take payment. Public self-service provisioning is not enabled. Guest online payments are disabled. Self-hosting does not require Stripe or a subscription.
 
 ## Try the demo locally
 

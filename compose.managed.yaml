@@ -1,0 +1,56 @@
+# Staging first: only loopback is published unless the https profile is enabled.
+# COVERSTEAD_DATA_DIR must be a dedicated directory owned by UID/GID 1000.
+services:
+  coverstead:
+    image: ${COVERSTEAD_IMAGE:-coverstead-managed:local}
+    build:
+      context: .
+      dockerfile: Dockerfile.managed
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 256
+    mem_limit: 3g
+    memswap_limit: 3g
+    stop_grace_period: 30s
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+    environment:
+      ENV_FILE: /var/lib/coverstead/config.env
+    volumes:
+      - ${COVERSTEAD_DATA_DIR:?Set a dedicated private staging data directory}:/var/lib/coverstead
+    ports:
+      - 127.0.0.1:${COVERSTEAD_LOCAL_PORT:-3100}:3100
+    healthcheck:
+      test: [CMD, node, --input-type=module, -e, "import './env.js'; import http from 'node:http'; const r=http.get({hostname:'127.0.0.1',port:3100,path:'/api/platform',headers:{Host:new URL(process.env.PUBLIC_URL).hostname}},s=>{s.resume();s.on('end',()=>process.exit(s.statusCode===200?0:1));});r.setTimeout(5000,()=>r.destroy());r.on('error',()=>process.exit(1));"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+  caddy:
+    image: caddy:2
+    profiles: [https]
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp
+    volumes:
+      - ${COVERSTEAD_CADDYFILE:-./Caddyfile.managed.example}:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+volumes:
+  caddy-data:
+  caddy-config:
