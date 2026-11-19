@@ -4,7 +4,9 @@ Start with the essentials. Save the answers as a draft; ask the optional operati
 
 ## Start with a short conversation
 
-For an initial hosted enquiry, four answers are enough: your venue and website, how you keep bookings today, the one thing you want to improve, and any feature you cannot operate without. Do not ask an interested owner to complete the whole questionnaire before trying the demo.
+To get started with hosted Enterprise, only the venue name, email address and contact permission are required at [Get started](https://coverstead.net/get-started). A question is optional. Do not ask an interested owner to complete this questionnaire before signup or the demo.
+
+During the agreed setup conversation, ask how the team keeps bookings today and which task they most want to improve. Work through the sections below with the owner; these are setup prompts, not an extra application form.
 
 During an agreed setup, work through the operational sections together. Alistair handles hosted server, email and backup configuration; the venue confirms its service rules, people and actual email receipts. Use made-up guest details for the rehearsal. Agree one real service and a person responsible for the diary before setting a handover date.
 
